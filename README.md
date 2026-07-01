@@ -3,7 +3,7 @@
   <p><em>Streamlining educational management, one class at a time.</em></p>
 
   <!-- Placeholders for badges -->
-  [![Build Status](https://img.shields.io/github/actions/workflow/status/your-org/kaushiki/main.yml?branch=main)](https://github.com/your-org/kaushiki/actions)
+  [![Build Status](https://github.com/Rajal-ui/kaushiki-coaching-portal/actions/workflows/main.yml/badge.svg)](https://github.com/Rajal-ui/kaushiki-coaching-portal/actions/workflows/main.yml)
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 </div>
 
