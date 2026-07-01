@@ -50,15 +50,21 @@ When you are ready to submit your changes, open a Pull Request (PR) against the 
 3. **Self-Review:** Review your own code to ensure it meets our styling guidelines and doesn't introduce console errors.
 
 ## Testing and Verification
-Before pushing your branch, please verify that everything works as expected:
-1. **Run the Test Suite:**
+Before committing or pushing your branch, please verify that everything works as expected by running the following checks locally:
+
+1. **Run the Test Suite (Jest)**:
    ```bash
    npm run test
    ```
-2. **Run the Linter:**
+2. **Run the Linter (ESLint)**:
    ```bash
    npm run lint
    ```
-Ensure all tests and linting checks pass successfully locally.
+3. **Run TypeScript Compiler Check**:
+   ```bash
+   npm run type-check
+   ```
+
+Ensure all tests, linting, and type checks pass successfully locally.
 
 We look forward to collaborating with you!

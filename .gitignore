@@ -18,6 +18,7 @@ pnpm-lock.yaml
 # Build artifacts
 dist/
 build/
+*.tsbuildinfo
 
 # Python
 __pycache__/

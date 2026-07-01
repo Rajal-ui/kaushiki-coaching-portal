@@ -85,6 +85,22 @@ Before you begin, ensure you have the following installed:
    ```
    *Your portal will now be available at [http://localhost:3000](http://localhost:3000).*
 
+### Verifying Checks Locally
+Before committing or pushing your changes, run these verification commands locally to ensure they pass the CI/CD pipeline:
+
+- **Lint Check**: Run ESLint checks.
+  ```bash
+  npm run lint
+  ```
+- **Type Check**: Run TypeScript compiler checks.
+  ```bash
+  npm run type-check
+  ```
+- **Run Tests**: Execute Jest unit tests.
+  ```bash
+  npm run test
+  ```
+
 ## Contributing
 We welcome contributions to the Kaushiki Coaching Portal! Please see our [Contributing Guidelines](docs/CONTRIBUTING.md) for details on our branching strategy, pull requests, and coding standards.
 
