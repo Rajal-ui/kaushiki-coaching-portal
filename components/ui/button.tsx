@@ -36,11 +36,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     if (asChild && React.isValidElement(props.children)) {
       // Basic slot-like mapping for child elements
-      const child = React.Children.only(props.children) as React.ReactElement;
+      const { children, ...restProps } = props;
+      const child = React.Children.only(children) as React.ReactElement;
       return React.cloneElement(child, {
         className: cn(buttonVariants({ variant, size }), className, child.props.className),
         ref,
-        ...props,
+        ...restProps,
       })
     }
     return (
