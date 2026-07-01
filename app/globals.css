@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #E8600A;
+    --color-primary-light: #FF8C42;
+    --color-primary-subtle: #FFF3EC;
+    --color-dark: #1A1208;
+    --color-body: #3D3020;
+    --color-muted: #8C7B6B;
+    --color-surface: #FFFFFF;
+    --color-bg: #FAFAF8;
+    --color-border: #EDE8E0;
+    --color-success: #2E7D32;
+    --color-error: #C62828;
+    --color-warning: #E65100;
+    --color-info: #1565C0;
+
+    --dash-bg: #F5F4F2;
+    --dash-sidebar: #1A1208;
+    --dash-sidebar-text: #C8BFB0;
+    --dash-sidebar-active: #E8600A;
+    --dash-card: #FFFFFF;
+    --dash-card-hover: #FFF8F4;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-body);
+    font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-dark);
+    font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', sans-serif;
+  }
+}
