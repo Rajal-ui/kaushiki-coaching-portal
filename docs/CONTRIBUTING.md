@@ -50,21 +50,33 @@ When you are ready to submit your changes, open a Pull Request (PR) against the 
 3. **Self-Review:** Review your own code to ensure it meets our styling guidelines and doesn't introduce console errors.
 
 ## Testing and Verification
-Before committing or pushing your branch, please verify that everything works as expected by running the following checks locally:
 
-1. **Run the Test Suite (Jest)**:
-   ```bash
-   npm run test
-   ```
-2. **Run the Linter (ESLint)**:
-   ```bash
-   npm run lint
-   ```
-3. **Run TypeScript Compiler Check**:
-   ```bash
-   npm run type-check
-   ```
+### Automated Pre-Commit Hook
+This repository uses **Husky** to automatically enforce quality checks on every commit. The `.husky/pre-commit` hook runs the following chain — **in order** — and will block your commit if any step fails:
 
-Ensure all tests, linting, and type checks pass successfully locally.
+| Step | Command | Scope |
+| :---: | :--- | :--- |
+| 1 | `npm test` | Full Jest unit test suite |
+| 2 | `npx lint-staged` | ESLint on staged `.js/.ts/.tsx` files only |
+| 3 | `npm run type-check` | TypeScript `tsc --noEmit` across the entire workspace |
+
+### Manual Pre-Push Checklist
+Before pushing your branch, run the complete verification suite manually:
+
+```bash
+# Lint all files (not just staged)
+npm run lint
+
+# TypeScript compiler check
+npm run type-check
+
+# Full test suite
+npm run test
+
+# Production build validation
+npm run build
+```
+
+> **All four checks must pass locally before opening a pull request.**
 
 We look forward to collaborating with you!
