@@ -8,6 +8,8 @@ function getRedisUrl(): string {
 
 export const redis = globalForRedis.redis ?? new Redis(getRedisUrl(), {
   maxRetriesPerRequest: 3,
+  enableOfflineQueue: false,
+  lazyConnect: true,
   retryStrategy(times) {
     if (times > 3) return null;
     return Math.min(times * 200, 2000);
