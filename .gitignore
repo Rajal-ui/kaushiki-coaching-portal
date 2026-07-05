@@ -48,3 +48,5 @@ coverage/
 .code-review-graph/
 
 /lib/generated/prisma
+
+privateDocs

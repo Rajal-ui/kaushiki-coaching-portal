@@ -25,6 +25,8 @@ export const metadata: Metadata = {
   description: "Educational portal for tutoring classes CBSE, ICSE, State Board, CA Prep by KLN Business Solutions",
 };
 
+import { Providers } from '@/components/Providers';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans antialiased bg-bg text-body">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -1,135 +1,166 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Loader2, RefreshCw, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { Search, ChevronLeft, ChevronRight, RefreshCw, AlertCircle, CheckCircle, Clock, Loader2 } from 'lucide-react';
 
 interface SmsLog {
   id: string;
   phone: string;
   templateId: string;
   triggerEvent: string;
-  status: string;
+  status: 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED';
   retryCount: number;
   failureReason: string | null;
   createdAt: string;
-  user?: { id: string; name: string } | null;
 }
 
-const STATUS_ICONS: Record<string, typeof Clock> = {
+const STATUS_ICONS: Record<string, any> = {
   QUEUED: Clock,
   SENT: CheckCircle,
+  DELIVERED: CheckCircle,
   FAILED: AlertCircle,
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  QUEUED: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-  SENT: 'text-green-600 bg-green-50 border-green-200',
-  FAILED: 'text-red-600 bg-red-50 border-red-200',
+const STATUS_BADGE: Record<string, string> = {
+  DELIVERED: 'bg-green-100 text-green-800 border-green-200',
+  SENT: 'bg-blue-100 text-blue-800 border-blue-200',
+  QUEUED: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  FAILED: 'bg-red-100 text-red-800 border-red-200',
 };
 
+const TRIGGER_EVENTS = [
+  'STUDENT_ENROLLED',
+  'PAYMENT_RECEIVED',
+  'ATTENDANCE_MARKED',
+  'OTP',
+  'TEST_SCORE',
+  'PARENT_LINK',
+  'GENERAL',
+];
+
 export default function SmsLogsPage() {
-  const [logs, setLogs] = useState<SmsLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [triggerFilter, setTriggerFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [retrying, setRetrying] = useState<string | null>(null);
+  const limit = 20;
 
-  async function load() {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('accessToken');
-      const params = new URLSearchParams({ page: String(page), limit: '20' });
-      if (statusFilter) params.set('status', statusFilter);
-      const res = await fetch(`/api/sms-logs?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.data ?? []);
-        setTotalPages(data.pagination?.totalPages ?? 1);
-      }
-    } catch { /* ignore */ }
-    setLoading(false);
-  }
+  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const authHeaders = { Authorization: `Bearer ${token}` };
 
-  useEffect(() => { load(); }, [page, statusFilter]);
+  const buildParams = () => {
+    const p = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (statusFilter) p.set('status', statusFilter);
+    if (triggerFilter) p.set('triggerEvent', triggerFilter);
+    if (dateFrom) p.set('dateFrom', dateFrom);
+    if (dateTo) p.set('dateTo', dateTo);
+    return p;
+  };
+
+  const { data: logsData, refetch: refetchLogs } = useRealtimeQuery<{ data: SmsLog[]; pagination: { total: number }; summary: { DELIVERED: number; SENT: number; QUEUED: number; FAILED: number } }>(
+    ['admin-sms-logs', page, statusFilter, triggerFilter, dateFrom, dateTo],
+    () => fetch(`/api/sms-logs?${buildParams()}`, { headers: authHeaders }).then(r => r.json()),
+    { pollInterval: 20000 }
+  );
+
+  const logs = logsData?.data ?? [];
+  const total = logsData?.pagination?.total ?? 0;
+  const totalPages = Math.ceil(total / limit);
+  const summary = logsData?.summary ?? { DELIVERED: 0, SENT: 0, QUEUED: 0, FAILED: 0 };
 
   async function handleRetry(id: string) {
     setRetrying(id);
     try {
-      const token = localStorage.getItem('accessToken');
       await fetch(`/api/sms-logs/${id}/retry`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders,
       });
-      load();
+      refetchLogs();
     } catch { /* ignore */ }
     setRetrying(null);
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">SMS Logs</h1>
-        <button onClick={load} className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
-          <RefreshCw className="w-5 h-5" />
-        </button>
-      </div>
-
-      <div className="mb-4 flex gap-2">
-        {['', 'QUEUED', 'SENT', 'FAILED'].map(s => (
-          <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
-            className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${statusFilter === s ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
-            {s || 'All'}
+    <ProtectedRoute allowedRoles={['ADMIN']}>
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">SMS Logs</h1>
+          <button onClick={() => refetchLogs()} className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+            <RefreshCw className="w-4 h-4" /> Refresh
           </button>
-        ))}
-      </div>
+        </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>
-      ) : logs.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">No SMS logs found.</div>
-      ) : (
-        <>
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'DELIVERED', value: summary.DELIVERED, color: 'border-green-200 bg-green-50 text-green-700' },
+            { label: 'SENT', value: summary.SENT, color: 'border-blue-200 bg-blue-50 text-blue-700' },
+            { label: 'QUEUED', value: summary.QUEUED, color: 'border-yellow-200 bg-yellow-50 text-yellow-700' },
+            { label: 'FAILED', value: summary.FAILED, color: 'border-red-200 bg-red-50 text-red-700' },
+          ].map(s => (
+            <div key={s.label} className={`rounded-xl border p-4 ${s.color}`}>
+              <p className="text-xs font-medium opacity-75">{s.label}</p>
+              <p className="text-2xl font-bold mt-1">{s.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="">All Status</option>
+            <option value="QUEUED">Queued</option>
+            <option value="SENT">Sent</option>
+            <option value="DELIVERED">Delivered</option>
+            <option value="FAILED">Failed</option>
+          </select>
+          <select value={triggerFilter} onChange={e => { setTriggerFilter(e.target.value); setPage(1); }} className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            <option value="">All Events</option>
+            {TRIGGER_EVENTS.map(ev => <option key={ev} value={ev}>{ev.replace(/_/g, ' ')}</option>)}
+          </select>
+          <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="From date" />
+          <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="To date" />
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Phone</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Event</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Template</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Retries</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Error</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Action</th>
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Phone</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Template ID</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Trigger Event</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Created At</th>
+                  <th className="text-center px-4 py-3 font-semibold text-gray-600">Retry Count</th>
+                  <th className="text-right px-4 py-3 font-semibold text-gray-600">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {logs.map(log => {
+                {logs.length === 0 ? (
+                  <tr><td colSpan={7} className="text-center py-8 text-gray-400">No SMS logs found.</td></tr>
+                ) : logs.map((log: SmsLog) => {
                   const StatusIcon = STATUS_ICONS[log.status] || Clock;
                   return (
-                    <tr key={log.id} className="border-t border-gray-100">
+                    <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3 text-gray-900">{log.phone}</td>
-                      <td className="px-4 py-3 text-gray-600">{log.triggerEvent}</td>
-                      <td className="px-4 py-3 text-gray-600"><code className="text-xs">{log.templateId}</code></td>
+                      <td className="px-4 py-3"><code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">{log.templateId}</code></td>
+                      <td className="px-4 py-3 text-gray-600 text-xs">{log.triggerEvent?.replace(/_/g, ' ') || '—'}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${STATUS_COLORS[log.status] || ''}`}>
-                          <StatusIcon className="w-3 h-3" />
-                          {log.status}
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${STATUS_BADGE[log.status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                          <StatusIcon className="w-3 h-3" /> {log.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{log.retryCount}</td>
-                      <td className="px-4 py-3 text-gray-500 max-w-[200px] truncate">{log.failureReason || '-'}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{new Date(log.createdAt).toLocaleString()}</td>
-                      <td className="px-4 py-3">
-                        {log.status === 'FAILED' && (
-                          <button onClick={() => handleRetry(log.id)} disabled={retrying === log.id}
-                            className="text-xs text-blue-600 hover:underline disabled:opacity-50">
-                            {retrying === log.id ? 'Retrying...' : 'Retry'}
+                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">{log.retryCount}</td>
+                      <td className="px-4 py-3 text-right">
+                        {log.status === 'FAILED' ? (
+                          <button onClick={() => handleRetry(log.id)} disabled={retrying === log.id} className="text-xs text-blue-600 hover:underline disabled:opacity-50">
+                            {retrying === log.id ? <Loader2 className="w-3 h-3 animate-spin inline" /> : 'Retry'}
                           </button>
-                        )}
+                        ) : <span className="text-xs text-gray-300">—</span>}
                       </td>
                     </tr>
                   );
@@ -137,19 +168,18 @@ export default function SmsLogsPage() {
               </tbody>
             </table>
           </div>
-
           {totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-4">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button key={i} onClick={() => setPage(i + 1)}
-                  className={`w-8 h-8 text-sm rounded-lg ${page === i + 1 ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:border-blue-400'}`}>
-                  {i + 1}
-                </button>
-              ))}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+              <span className="text-sm text-gray-500">{total} total</span>
+              <div className="flex gap-2">
+                <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 hover:bg-gray-100 flex items-center gap-1"><ChevronLeft className="w-3 h-3" /> Prev</button>
+                <span className="px-3 py-1 text-sm text-gray-600">Page {page} of {totalPages}</span>
+                <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 hover:bg-gray-100 flex items-center gap-1">Next <ChevronRight className="w-3 h-3" /></button>
+              </div>
             </div>
           )}
-        </>
-      )}
-    </div>
+        </div>
+      </div>
+    </ProtectedRoute>
   );
 }

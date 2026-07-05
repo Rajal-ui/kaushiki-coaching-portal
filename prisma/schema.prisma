@@ -159,6 +159,7 @@ model Batch {
   doubtQueries DoubtQuery[]
   attendance   Attendance[]
   testScores   TestScore[]
+  classSessions ClassSession[]
 
   @@map("batches")
 }
@@ -281,6 +282,29 @@ model ProcessedWebhookEvent {
   processedAt DateTime @default(now())
 
   @@map("processed_webhook_events")
+}
+
+model ClassSession {
+  id        String   @id @default(cuid())
+  batchId   String
+  date      DateTime @db.Date
+  startTime String
+  endTime   String
+  note      String?
+  createdAt DateTime @default(now())
+
+  batch Batch @relation(fields: [batchId], references: [id])
+
+  @@index([batchId, date])
+  @@map("class_sessions")
+}
+
+model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
 }
 
 model SiteSetting {
