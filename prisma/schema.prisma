@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  PARENT
+  FACULTY
+  ADMIN
+}
+
+enum AccountStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+}
+
+enum TrackName {
+  CLASSES_1_5
+  CLASSES_6_10
+  CLASSES_11_12_COMMERCE
+  CA_FOUNDATION_INTERMEDIATE
+}
+
+enum BatchStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum LinkStatus {
+  PENDING
+  APPROVED
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  REVOKED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum InquiryStatus {
+  NEW
+  CONTACTED
+  ENROLLED
+  CLOSED
+}
+
+enum QueryStatus {
+  OPEN
+  ANSWERED
+}
+
+enum SmsStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String
+  phone         String        @unique
+  email         String?       @unique
+  passwordHash  String
+  role          Role
+  status        AccountStatus @default(PENDING_VERIFICATION)
+  phoneVerified Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  parentLinks      ParentStudentLink[] @relation("ParentLinks")
+  studentLinks     ParentStudentLink[] @relation("StudentLinks")
+  approvedLinks    ParentStudentLink[] @relation("ApprovedLinks")
+  assignedBatches  Batch[]             @relation("FacultyBatches")
+  enrollments      Enrollment[]        @relation("StudentEnrollments")
+  payments         Payment[]           @relation("PayerPayments")
+  doubtQueries     DoubtQuery[]        @relation("StudentQueries")
+  doubtResponses   DoubtQuery[]        @relation("FacultyResponses")
+  attendance       Attendance[]
+  testScores       TestScore[]
+  assignedInquiries Inquiry[]           @relation("AssignedInquiries")
+  smsLogs          SmsLog[]
+  adminEnrollments Enrollment[]        @relation("AdminEnrollments")
+
+  @@map("users")
+}
+
+model ParentStudentLink {
+  id           String     @id @default(cuid())
+  parentId     String
+  studentId    String
+  status       LinkStatus @default(PENDING)
+  approvedById String?
+  createdAt    DateTime   @default(now())
+
+  parent     User  @relation("ParentLinks",   fields: [parentId],     references: [id])
+  student    User  @relation("StudentLinks",  fields: [studentId],    references: [id])
+  approvedBy User? @relation("ApprovedLinks", fields: [approvedById], references: [id])
+
+  @@unique([parentId, studentId])
+  @@map("parent_student_links")
+}
+
+model Track {
+  id            String    @id @default(cuid())
+  name          TrackName @unique
+  boardCoverage String?
+  displayOrder  Int
+  createdAt     DateTime  @default(now())
+
+  subjects Subject[]
+
+  @@map("tracks")
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  trackId   String
+  name      String
+  createdAt DateTime @default(now())
+
+  track   Track   @relation(fields: [trackId], references: [id])
+  batches Batch[]
+
+  @@unique([trackId, name])
+  @@map("subjects")
+}
+
+model Batch {
+  id          String      @id @default(cuid())
+  subjectId   String
+  facultyId   String
+  capacity    Int
+  seatsFilled Int         @default(0)
+  schedule    String
+  status      BatchStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  subject      Subject      @relation(fields: [subjectId],  references: [id])
+  faculty      User         @relation("FacultyBatches", fields: [facultyId], references: [id])
+  enrollments  Enrollment[]
+  doubtQueries DoubtQuery[]
+  attendance   Attendance[]
+  testScores   TestScore[]
+
+  @@map("batches")
+}
+
+model Enrollment {
+  id           String           @id @default(cuid())
+  studentId    String
+  batchId      String
+  status       EnrollmentStatus @default(PENDING)
+  inquiryId    String?
+  enrolledById String?
+  enrolledAt   DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  student    User     @relation("StudentEnrollments", fields: [studentId],    references: [id])
+  batch      Batch    @relation(fields: [batchId],    references: [id])
+  inquiry    Inquiry? @relation(fields: [inquiryId],  references: [id])
+  enrolledBy User?    @relation("AdminEnrollments",   fields: [enrolledById], references: [id])
+  payment    Payment?
+
+  @@unique([studentId, batchId])
+  @@map("enrollments")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  enrollmentId   String        @unique
+  payerId        String
+  amount         Int
+  currency       String        @default("INR")
+  gateway        String        @default("razorpay")
+  gatewayOrderId String?
+  gatewayEventId String?       @unique
+  status         PaymentStatus @default(PENDING)
+  failureReason  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  payer      User       @relation("PayerPayments",  fields: [payerId],       references: [id])
+
+  @@map("payments")
+}
+
+model Inquiry {
+  id         String        @id @default(cuid())
+  name       String
+  phone      String
+  email      String?
+  trackId    String?
+  message    String
+  status     InquiryStatus @default(NEW)
+  assigneeId String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  assignee    User?        @relation("AssignedInquiries", fields: [assigneeId], references: [id])
+  enrollments Enrollment[]
+
+  @@map("inquiries")
+}
+
+model DoubtQuery {
+  id            String      @id @default(cuid())
+  studentId     String
+  batchId       String
+  questionText  String
+  attachmentUrl String?
+  status        QueryStatus @default(OPEN)
+  responseText  String?
+  respondedById String?
+  respondedAt   DateTime?
+  createdAt     DateTime    @default(now())
+
+  student     User   @relation("StudentQueries",  fields: [studentId],     references: [id])
+  batch       Batch  @relation(fields: [batchId],                          references: [id])
+  respondedBy User?  @relation("FacultyResponses", fields: [respondedById], references: [id])
+
+  @@map("doubt_queries")
+}
+
+model Attendance {
+  id          String   @id @default(cuid())
+  batchId     String
+  studentId   String
+  sessionDate DateTime @db.Date
+  present     Boolean  @default(false)
+  markedById  String?
+
+  batch   Batch @relation(fields: [batchId],   references: [id])
+  student User  @relation(fields: [studentId], references: [id])
+
+  @@unique([batchId, studentId, sessionDate])
+  @@index([batchId, sessionDate])
+  @@map("attendance")
+}
+
+model TestScore {
+  id        String   @id @default(cuid())
+  batchId   String
+  studentId String
+  testName  String
+  score     Int
+  maxScore  Int
+  testDate  DateTime @db.Date
+  remark    String?
+  enteredAt DateTime @default(now())
+
+  batch   Batch @relation(fields: [batchId],   references: [id])
+  student User  @relation(fields: [studentId], references: [id])
+
+  @@index([batchId])
+  @@map("test_scores")
+}
+
+model ProcessedWebhookEvent {
+  id          String   @id
+  gateway     String
+  eventType   String
+  processedAt DateTime @default(now())
+
+  @@map("processed_webhook_events")
+}
+
+model SmsLog {
+  id            String    @id @default(cuid())
+  userId        String?
+  phone         String
+  templateId    String
+  triggerEvent  String
+  status        SmsStatus @default(QUEUED)
+  retryCount    Int       @default(0)
+  failureReason String?
+  providerId    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([userId])
+  @@map("sms_logs")
+}
