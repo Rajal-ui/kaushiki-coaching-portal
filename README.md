@@ -72,6 +72,50 @@ The codebase implements features following a strict modular pathway:
 
 ---
 
+
+## Getting Started
+
+### Prerequisites
+Before you begin, ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (v20 or higher)
+- [PostgreSQL](https://www.postgresql.org/) (running locally or via Docker)
+- [Redis](https://redis.io/) (for background tasks)
+
+### Step-by-Step Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-org/kaushiki.git
+   cd kaushiki
+   ```
+
+2. **Environment Setup:**
+   Copy the example environment file and configure your local variables.
+   ```bash
+   cp .env.example .env
+   ```
+   *Note: Update the `DATABASE_URL` and `REDIS_URL` in your `.env` file to match your local setup.*
+
+3. **Install Dependencies:**
+   ```bash
+   npm install
+   ```
+
+4. **Seed the Database:**
+   Push the schema to your database and generate the Prisma client.
+   ```bash
+   npx prisma db push
+   npx prisma generate
+   ```
+
+5. **Run the Development Server:**
+   ```bash
+   npm run dev
+   ```
+   *Your portal will now be available at [http://localhost:3000](http://localhost:3000).*
+
+---
+
 ## 6. Automated Pre-Commit Guardrails
 
 This repository enforces quality gates on **every commit** via Husky. The `.husky/pre-commit` hook automatically runs the following chain — **in this exact order** — before any commit is accepted:
@@ -116,6 +160,11 @@ All detailed technical and project documentation lives in the [`docs/`](./docs) 
 | [design.md](./docs/design.md) | Design system tokens — colours, typography, spacing, and component guidelines. |
 
 > **Internal documents** (PRD, TRD, Implementation Plan) are kept in `docs/` for team reference and are **not** intended for public disclosure.
+
+---
+
+## Contributing
+We welcome contributions to the Kaushiki Coaching Portal! Please see our [Contributing Guidelines](docs/CONTRIBUTING.md) for details on our branching strategy, pull requests, and coding standards.
 
 ---
 
