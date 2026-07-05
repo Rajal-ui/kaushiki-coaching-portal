@@ -263,6 +263,25 @@ async function main() {
     ],
   });
 
+  // ── NOTIFICATIONS ─────────────────────────────────────
+  await prisma.notification.createMany({
+    skipDuplicates: true,
+    data: [
+      { userId: student1.id, type: 'DOUBT_ANSWERED', title: 'Doubt Answered', message: 'Priya Kulkarni answered your doubt in Mathematics — How do we solve quadratic equations using the discriminant method?', link: '/dashboard/student', isRead: false, createdAt: new Date('2026-06-19') },
+      { userId: student1.id, type: 'DOUBT_ANSWERED', title: 'Doubt Answered', message: 'Amit Desai answered your doubt in Science — Why does ice float on water?', link: '/dashboard/student', isRead: true, createdAt: new Date('2026-06-20') },
+      { userId: student1.id, type: 'PAYMENT_CONFIRMED', title: 'Payment Confirmed', message: 'Payment of ₹4,500 for Mathematics confirmed.', link: '/dashboard/student', isRead: true, createdAt: new Date('2026-06-01') },
+      { userId: student1.id, type: 'PAYMENT_CONFIRMED', title: 'Payment Confirmed', message: 'Payment of ₹4,200 for Science confirmed.', link: '/dashboard/student', isRead: true, createdAt: new Date('2026-06-01') },
+      { userId: student1.id, type: 'ENROLLMENT_ACTIVE', title: 'Enrollment Active', message: 'Your enrollment in Mathematics is now active.', link: '/dashboard/student', isRead: false, createdAt: new Date('2026-06-01') },
+      { userId: student2.id, type: 'DOUBT_SUBMITTED', title: 'Doubt Submitted', message: 'Sneha Mehta submitted a doubt in Accountancy — I am confused about the difference between capital reserve and reserve capital.', link: '/dashboard/faculty/doubts', isRead: false, createdAt: new Date('2026-06-22') },
+      { userId: student2.id, type: 'PAYMENT_CONFIRMED', title: 'Payment Confirmed', message: 'Payment of ₹6,000 for Accountancy confirmed.', link: '/dashboard/student', isRead: true, createdAt: new Date('2026-06-10') },
+      { userId: student3.id, type: 'PAYMENT_FAILED', title: 'Payment Failed', message: 'Payment of ₹8,000 for CA Foundation failed. Please try again.', link: '/dashboard/student', isRead: false, createdAt: new Date('2026-06-15') },
+      { userId: parent1.id, type: 'LINK_APPROVED', title: 'Link Approved', message: 'Your link with Arjun Patil has been approved.', link: '/dashboard/parent', isRead: true, createdAt: new Date('2026-06-01') },
+      { userId: parent2.id, type: 'LINK_APPROVED', title: 'Link Approved', message: 'Your link with Sneha Mehta has been approved.', link: '/dashboard/parent', isRead: true, createdAt: new Date('2026-06-01') },
+      { userId: admin.id, type: 'INQUIRY_RECEIVED', title: 'New Inquiry', message: 'Vijay Rathod submitted an inquiry — My son is in Class 9, interested in Math and Science batches.', link: '/dashboard/admin/inquiries', isRead: false, createdAt: new Date('2026-06-24') },
+      { userId: admin.id, type: 'INQUIRY_RECEIVED', title: 'New Inquiry', message: 'Deepak Verma submitted an inquiry — Interested in CA Foundation preparation.', link: '/dashboard/admin/inquiries', isRead: false, createdAt: new Date('2026-06-25') },
+    ],
+  });
+
   // ── SITE SETTINGS / SYSTEM CONFIG ─────────────────────
   const configs = [
     { key: 'admissions_label', value: 'Admissions Open — 2026-27' },

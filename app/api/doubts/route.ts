@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { createDoubtSchema, listDoubtsSchema } from '@/lib/validators/doubts';
 import { enqueueSms } from '@/lib/sms/queue';
+import { createNotificationForDoubtSubmitted } from '@/lib/notifications';
 
 export async function POST(req: NextRequest) {
   const auth = await authenticateRequest(req as AuthenticatedRequest);
@@ -66,6 +67,8 @@ export async function POST(req: NextRequest) {
       variables: { student_name: auth.user.id },
       triggerEvent: 'doubt_submitted',
     });
+
+    await createNotificationForDoubtSubmitted(doubt.id);
 
     return NextResponse.json(doubt, { status: 201 });
   } catch (err) {

@@ -53,6 +53,10 @@ const mockPrisma = {
     findMany: jest.fn(),
     create: jest.fn(),
   },
+  notification: {
+    create: jest.fn().mockResolvedValue({ id: 'notif-mock' }),
+    createMany: jest.fn().mockResolvedValue({ count: 0 }),
+  },
   $transaction: jest.fn().mockImplementation(runTransaction),
 };
 
@@ -87,9 +91,11 @@ describe('Enrollment Flow', () => {
     linkData = null;
 
     mockPrisma.batch.findUnique.mockImplementation(() => batchData);
-    mockPrisma.enrollment.findUnique.mockImplementation(({ where }: { where: { studentId_batchId?: { studentId: string; batchId: string }; id?: string } }) => {
-      if (where.studentId_batchId) return null;
-      if (where.id && enrollmentData?.id === where.id) return enrollmentData;
+    mockPrisma.enrollment.findUnique.mockImplementation((args: { where: { studentId_batchId?: { studentId: string; batchId: string }; id?: string } }) => {
+      if (args.where.studentId_batchId) return null;
+      if (args.where.id && enrollmentData?.id === args.where.id) {
+        return { ...enrollmentData, student: { id: enrollmentData.studentId } };
+      }
       return null;
     });
     mockPrisma.enrollment.findMany.mockImplementation(() => enrollmentData ? [enrollmentData] : []);
@@ -115,7 +121,13 @@ describe('Enrollment Flow', () => {
       return null;
     });
     mockPrisma.payment.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
-      if (paymentData && paymentData.id === where.id) return paymentData;
+      if (paymentData && paymentData.id === where.id) {
+        return {
+          ...paymentData,
+          payer: { id: 'student-1', name: 'Student' },
+          enrollment: enrollmentData ? { ...enrollmentData, batch: { subject: { name: 'Mathematics' } } } : null,
+        };
+      }
       return null;
     });
     mockPrisma.payment.update.mockImplementation(({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {

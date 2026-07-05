@@ -97,6 +97,7 @@ model User {
   assignedInquiries Inquiry[]           @relation("AssignedInquiries")
   smsLogs          SmsLog[]
   adminEnrollments Enrollment[]        @relation("AdminEnrollments")
+  notifications    Notification[]
 
   @@map("users")
 }
@@ -313,6 +314,35 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 
   @@map("site_settings")
+}
+
+enum NotificationType {
+  DOUBT_ANSWERED
+  DOUBT_SUBMITTED
+  PAYMENT_CONFIRMED
+  PAYMENT_FAILED
+  ENROLLMENT_ACTIVE
+  LINK_APPROVED
+  LINK_REQUESTED
+  ATTENDANCE_LOW
+  INQUIRY_RECEIVED
+  SYSTEM
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  link      String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 model SmsLog {

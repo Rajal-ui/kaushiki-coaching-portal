@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { enqueueMockSms } from '@/lib/sms/mock';
+import { createNotificationForPayment } from '@/lib/notifications';
 
 const PAYMENT_CAPTURED = 'payment.captured';
 const PAYMENT_FAILED = 'payment.failed';
@@ -92,6 +93,8 @@ export async function POST(req: NextRequest) {
           payment.enrollment.student.phone,
           `Enrollment confirmed for ${payment.enrollment.batch.subject.name}! Welcome to Kaushiki Classes.`
         );
+
+        await createNotificationForPayment(payment.id, 'SUCCEEDED', paymentEntity.amount);
       }
 
       if (event.event === PAYMENT_FAILED) {
@@ -118,6 +121,8 @@ export async function POST(req: NextRequest) {
           payment.enrollment.student.phone,
           'Payment failed. Please try again or contact support.'
         );
+
+        await createNotificationForPayment(payment.id, 'FAILED', paymentEntity.amount);
       }
     });
 

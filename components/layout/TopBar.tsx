@@ -1,7 +1,8 @@
 'use client';
 
-import { Home, Bell, User } from 'lucide-react';
+import { Home } from 'lucide-react';
 import Link from 'next/link';
+import NotificationBell from './NotificationBell';
 
 interface Props {
   userName: string;
@@ -18,10 +19,7 @@ export default function TopBar({ userName, role }: Props) {
       </Link>
 
       <div className="flex items-center gap-4">
-        <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        <NotificationBell role={role} />
 
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">

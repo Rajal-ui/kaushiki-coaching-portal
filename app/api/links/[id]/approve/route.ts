@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { approveLinkSchema } from '@/lib/validators/links';
+import { createNotificationForLinkApproved } from '@/lib/notifications';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateRequest(req as AuthenticatedRequest);
@@ -62,6 +63,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         student: { select: { id: true, name: true, phone: true } },
       },
     });
+
+    await createNotificationForLinkApproved(id, status);
 
     return NextResponse.json(updated);
   } catch (err) {

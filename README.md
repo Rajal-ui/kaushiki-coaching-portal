@@ -3,172 +3,314 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/Rajal-ui/kaushiki-coaching-portal/main.yml?branch=main)](https://github.com/Rajal-ui/kaushiki-coaching-portal/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> Streamlining educational operations and coaching center management through a unified portal ecosystem.
+> Full-stack EdTech platform for coaching centre management — attendance, fees, test scores, parent communication, and analytics.
+
+**Kaushiki Classes** is a single-tenant educational institution management platform that digitises the entire student lifecycle — from inquiry and enrollment to daily attendance, test performance, fee collection, and parent engagement. Built for small-to-medium coaching centres in India.
+
+### Key Features
+- **Role-based dashboards** — Admin, Faculty, Student, Parent with tailored views
+- **Enrollment + Payment flow** — Razorpay integration with webhook-driven seat activation
+- **Real-time analytics** — Revenue trends, batch fill rates, student risk detection
+- **Communication** — In-app notifications, SMS (MSG91) for doubt responses & payment confirmations
+- **Inquiry pipeline** — Lead capture with honeypot spam protection, admin funnel management
+- **Parent-student linking** — Parents monitor child's attendance, scores, and doubts
+- **Doubt queries** — Students submit, faculty respond inline, instant notification
+- **Reports & CSV exports** — Revenue, enrollment, attendance, and score reports
 
 ---
-
-## 1. Executive Summary
-The **Kaushiki Coaching Portal** is a high-performance EdTech SaaS platform developed for **Kaushiki Classes / KLN Business Solutions**. The system digitizes educational workflow administration by providing four distinct, role-based dashboards:
-*   **Admin Dashboard:** Comprehensive course planning, cohort assignments, attendance auditing, and financial ledgers.
-*   **Faculty Portal:** Batch tracking, schedule management, mark entries, and direct student evaluation tools.
-*   **Student Hub:** Interactive learning metrics, schedules, course progress tracking, and doubt forums.
-*   **Parent Portal:** Visual learning progression metrics, attendance history, and fee receipt ledgers.
-
----
-
-## 2. New Contributor Roadmap
-To begin working on the codebase, follow this sequence:
-1.  **Read the Architecture Blueprint:** Review [docs/ARCHITECTURE.md](file:///d:/Projects/Kaushiki/docs/ARCHITECTURE.md) to understand the portal groups and feature isolation strategies.
-2.  **Understand Coding Standards:** Review [docs/CONTRIBUTING.md](file:///d:/Projects/Kaushiki/docs/CONTRIBUTING.md) for branch formatting, code conventions, and pull request requirements.
-3.  **Sync with Active Sprints:** Cross-reference local code changes with active task listings in the current sprint board before modifying shared logic.
-
----
-
-## 3. Implementation Lifecycle
-
-| Sprint | Goal / Focus Area | Status | Deliverables |
-| :--- | :--- | :--- | :--- |
-| **Sprint 0** | Infrastructure & Design System | ✅ Completed | Base config, Tailwind themes, core UI primitives, pre-commit hooks, CI. |
-| **Sprint 1** | Course Management Module | 🚀 In Progress | Admin Course CRUD, Prisma Course Schema, TypeScript interfaces, MSW API mocks. |
-| **Sprint 2** | Authentication & Database Integration | 📅 Planned | Database migration, role-based OTP authentication system. |
-| **Sprint 3** | Batch Management & Scheduling | 📅 Planned | Batch controls, class schedule grid, faculty allocation. |
-| **Sprint 4** | Ledger Systems & Communication | 📅 Planned | Fee schedules, transaction logs, automated notification alerts. |
-
----
-
-## 4. Codebase Structure
-```text
-kaushiki-coaching-portal/
-├── .github/
-│   └── workflows/          # GitHub Actions CI definitions
-├── .husky/                 # Pre-commit git hook controllers
-├── __mocks__/             # Global test mocking layers (e.g. styleMock)
-├── __tests__/             # Unit and integration test suites
-├── app/                    # Next.js App Router portal route groups
-│   ├── (admin)/            # Admin-only workflows
-│   ├── (auth)/             # Login and security groups
-│   ├── (faculty)/          # Faculty-only operations
-│   ├── (parent)/           # Parent portal monitoring
-│   └── (student)/          # Student dashboard layout
-├── components/
-│   ├── ui/                 # Design system primitive atoms (shadcn base)
-│   └── features/           # Modular domain-specific organisms grouped by role
-├── docs/                   # Architectural guides and workspace rules
-├── lib/                    # Shared utility helper definitions
-└── types/                  # Common TypeScript interfaces and domain schemas
-```
-
----
-
-## 5. Codebase Architecture Flow
-The codebase implements features following a strict modular pathway:
-```text
-[Type Definitions] ➔ [UI Components] ➔ [API Mock Isolation (MSW)] ➔ [Database Schema (Prisma)]
-```
-1.  **Types:** Interface definitions are declared globally under `types/` representing core domain models.
-2.  **Components:** Atoms are mapped into `components/ui/`, while portal-specific functional blocks live under `components/features/{role}/`.
-3.  **API Mocking:** Endpoints are mapped via `mocks/handlers.ts` using MSW to allow functional UI development independent of physical backend logic.
-4.  **Data Models:** Verified data shapes are then mapped directly to PostgreSQL tables using Prisma schemas.
-
----
-
 
 ## Getting Started
 
 ### Prerequisites
-Before you begin, ensure you have the following installed:
-- [Node.js](https://nodejs.org/) (v20 or higher)
-- [PostgreSQL](https://www.postgresql.org/) (running locally or via Docker)
-- [Redis](https://redis.io/) (for background tasks)
 
-### Step-by-Step Installation
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| **Node.js** | v20+ | Includes npm |
+| **PostgreSQL** | 16 | Required — install locally or use Railway free tier |
+| **Redis** | 7 | Optional — app auto-falls back to in-memory store |
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-org/kaushiki.git
-   cd kaushiki
-   ```
+### Installation
 
-2. **Environment Setup:**
-   Copy the example environment file and configure your local variables.
-   ```bash
-   cp .env.example .env
-   ```
-   *Note: Update the `DATABASE_URL` and `REDIS_URL` in your `.env` file to match your local setup.*
+```bash
+# Clone the repository
+git clone https://github.com/Rajal-ui/kaushiki-coaching-portal.git
+cd kaushiki-coaching-portal
 
-3. **Install Dependencies:**
-   ```bash
-   npm install
-   ```
+# Copy environment file
+cp .env.example .env
 
-4. **Seed the Database:**
-   Push the schema to your database and generate the Prisma client.
-   ```bash
-   npx prisma db push
-   npx prisma generate
-   ```
+# Install dependencies
+npm install
+```
 
-5. **Run the Development Server:**
-   ```bash
-   npm run dev
-   ```
-   *Your portal will now be available at [http://localhost:3000](http://localhost:3000).*
+### Database Setup
+
+```bash
+# Apply all database migrations
+npx prisma migrate dev
+
+# Seed development data (9 users, 4 batches, 40 attendance records, etc.)
+npx prisma db seed
+
+# (Optional) Explore data visually
+npx prisma studio
+```
+
+### Start Development Server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+> **Docker not required.** Redis has a built-in in-memory fallback — only PostgreSQL needs to be running.
+
+### Login Credentials
+
+All accounts use password **`Kaushiki@123`** — login at `/login` using the Password tab.
+
+| Role | Name | Phone |
+|------|------|-------|
+| Admin | Rajesh Sharma | `9175498572` |
+| Faculty | Priya Kulkarni | `9876543210` |
+| Faculty | Amit Desai | `9823456701` |
+| Faculty | Sunita Joshi | `9712345678` |
+| Student | Arjun Patil | `9900112233` |
+| Student | Sneha Mehta | `9900223344` |
+| Student | Rohan Kadam | `9900334455` |
+| Parent | Suresh Patil | `9800112233` |
+| Parent | Anita Mehta | `9800223344` |
 
 ---
 
-## 6. Automated Pre-Commit Guardrails
-
-This repository enforces quality gates on **every commit** via Husky. The `.husky/pre-commit` hook automatically runs the following chain — **in this exact order** — before any commit is accepted:
-
-| Step | Command | What it checks |
-| :---: | :--- | :--- |
-| 1 | `npm test` | Runs the full Jest unit test suite. Blocks commit on any test failure. |
-| 2 | `npx lint-staged` | Runs ESLint on staged `.js/.ts/.tsx` files only. |
-| 3 | `npm run type-check` | Runs `tsc --noEmit` across the entire workspace. |
-
-> A commit is **only created** if all three steps pass. If any step fails, the commit is aborted and the error is printed to the terminal.
-
-### Run Checks Manually Before Pushing
-
-Before pushing your branch, always run the full suite manually to catch issues early:
+## Quick Start
 
 ```bash
-# 1. Lint all files
-npm run lint
+# 1. Clone & install
+git clone https://github.com/Rajal-ui/kaushiki-coaching-portal.git
+cd kaushiki-coaching-portal
+cp .env.example .env
+npm install
 
-# 2. Type-check the whole workspace
-npm run type-check
+# 2. Database (PostgreSQL running on localhost:5432)
+npx prisma migrate dev
+npx prisma db seed
 
-# 3. Run all tests
-npm run test
+# 3. Start
+npm run dev
+# → http://localhost:3000
+```
 
-# 4. Verify the production build compiles cleanly
-npm run build
+**Docker-free development:** Redis has an in-memory fallback when unavailable. Only PostgreSQL is required (install locally or use Railway free tier).
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 16 (App Router, Turbopack) |
+| **Language** | TypeScript (strict mode) |
+| **Database** | PostgreSQL 16 via Prisma 7 ORM |
+| **Cache / Queue** | Redis 7 (`ioredis` with in-memory fallback) |
+| **Auth** | OTP (bcrypt hashes, Redis TTL), JWT (jose, HS256), Google OAuth |
+| **Payments** | Razorpay (orders, webhooks, refunds) |
+| **SMS** | MSG91 transactional API + Redis worker |
+| **UI** | Tailwind CSS, shadcn/ui primitives, Lucide icons |
+| **Charts** | Recharts |
+| **State / Data** | React Query (`@tanstack/react-query`) with polling |
+| **Testing** | Jest + MSW (unit/integration), Playwright (E2E) |
+| **CI/CD** | Husky pre-commit hooks (test → lint → type-check) |
+
+---
+
+## Sprint Completion
+
+| Sprint | Focus | Status |
+|--------|-------|--------|
+| **0** | Infrastructure, Tailwind design system, UI primitives, pre-commit hooks, CI | ✅ |
+| **1–2** | Database schema (16 models, 10 enums), auth (OTP/JWT/Google), Redis | ✅ |
+| **3** | Batch CRUD, inquiry management, role-based dashboards, auth refactor | ✅ |
+| **4** | Enrollment + Razorpay payment flow, parent-student linking, attendance/scoring APIs | ✅ |
+| **5** | MSG91 SMS integration, Redis worker, SMS logs admin, doubt queries | ✅ |
+| **6** | QA hardening, health endpoint, admin settings, Playwright E2E, security audit | ✅ |
+| **7** | Redis in-memory fallback (zero Docker dependency for dev) | ✅ |
+| **8** | Mock data seeding, full admin portal, real-time polling, all role dashboards | ✅ |
+| **9** | In-app notifications system (bell + dropdown + full page, auto-creation on events) | ✅ |
+
+---
+
+## Architecture
+
+### Route Structure
+
+```
+/                      Landing page (public)
+/about                 About Kaushiki Classes (public)
+/programs/[slug]       Track detail + batch list (public)
+
+/login | /signup       Auth pages
+
+/dashboard/admin/*     Admin portal (full CRUD + analytics)
+/dashboard/faculty/*   Faculty portal (attendance, scores, doubts)
+/dashboard/student/*   Student hub (batches, scores, attendance, doubts, fees)
+/dashboard/parent/*    Parent portal (child monitoring)
+
+/api/auth/*            Auth endpoints (public)
+/api/tracks            Track listing (public, ISR 60s)
+/api/inquiries         Inquiry form (public, rate-limited)
+
+/api/batches/*         Batch CRUD (admin/faculty)
+/api/enrollments/*     Enrollment + payment (student/parent)
+/api/payments/*        Razorpay orders + webhook + refunds
+/api/attendance/*      Attendance records (faculty/student/parent)
+/api/scores/*          Test scores (faculty/student/parent)
+/api/doubts/*          Doubt queries (student/faculty/admin)
+/api/links/*           Parent-student linking
+/api/sms-logs/*        SMS audit log (admin)
+
+/api/admin/*           Admin dashboard APIs (stats, reports, charts, CSV exports)
+/api/health            Health check (DB + Redis)
+```
+
+### Data Flow
+
+```
+User → Browser → Next.js App Router → API Route Handler
+                                         │
+                           ┌─────────────┼─────────────┐
+                           ▼             ▼             ▼
+                       Prisma ORM     Redis         Razorpay
+                           │          (cache,         │
+                           ▼           queue)         ▼
+                      PostgreSQL      MSG91       Webhook
+                                       SMS
+```
+
+### Role-Based Access
+
+| Route | Middleware |
+|-------|-----------|
+| `/dashboard/admin/*` | `ProtectedRoute allowedRoles={['ADMIN']}` |
+| `/dashboard/faculty/*` | `ProtectedRoute allowedRoles={['FACULTY','ADMIN']}` |
+| `/dashboard/student/*` | `ProtectedRoute allowedRoles={['STUDENT']}` |
+| `/dashboard/parent/*` | `ProtectedRoute allowedRoles={['PARENT']}` |
+| All API routes | `authenticateRequest()` + inline role check |
+
+---
+
+## Development Credentials
+
+All passwords: **`Kaushiki@123`**
+
+| Role | Name | Phone |
+|------|------|-------|
+| **Admin** | Rajesh Sharma | `9175498572` |
+| **Faculty** | Priya Kulkarni | `9876543210` |
+| **Faculty** | Amit Desai | `9823456701` |
+| **Faculty** | Sunita Joshi | `9712345678` |
+| **Student** | Arjun Patil | `9900112233` |
+| **Student** | Sneha Mehta | `9900223344` |
+| **Student** | Rohan Kadam | `9900334455` |
+| **Parent** | Suresh Patil | `9800112233` — linked to Arjun |
+| **Parent** | Anita Mehta | `9800223344` — linked to Sneha |
+
+Login at `/login` using **Password** tab with any phone + password `Kaushiki@123`.
+
+---
+
+## Pre-Commit Hooks
+
+Every commit runs: `npm test` → `npx lint-staged` → `npm run type-check`. All three must pass.
+
+```bash
+# Manual pre-push verification
+npm run lint && npm run type-check && npm run test && npm run build
 ```
 
 ---
 
-## 7. Documentation
+## Codebase Map
 
-All detailed technical and project documentation lives in the [`docs/`](./docs) folder. Refer to these before starting any new work:
-
-| Document | Purpose |
-| :--- | :--- |
-| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Portal architecture, feature-first module pattern, and directory conventions. |
-| [CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Branching rules, PR standards, code style guidelines, and local verification steps. |
-| [CHANGELOG.md](./docs/CHANGELOG.md) | Running history of notable changes per release / sprint. |
-| [design.md](./docs/design.md) | Design system tokens — colours, typography, spacing, and component guidelines. |
-
-> **Internal documents** (PRD, TRD, Implementation Plan) are kept in `docs/` for team reference and are **not** intended for public disclosure.
+```
+├── app/                     Next.js App Router
+│   ├── api/                 All API route handlers (50+ endpoints)
+│   ├── dashboard/           Role-based dashboard pages
+│   ├── about/ | programs/   Public pages
+│   └── login/ | signup/     Auth pages
+├── components/
+│   ├── ui/                  Design system primitives (shadcn)
+│   ├── layout/              Sidebar, TopBar, Providers
+│   ├── auth/                ProtectedRoute, Google One Tap
+│   └── payment/             Razorpay checkout
+├── lib/
+│   ├── auth/                JWT, OTP, middleware
+│   ├── db/                  Prisma singleton (adapter-pg)
+│   ├── sms/                 MSG91 adapter, SMS queue, mock
+│   ├── validators/          Zod schemas per domain
+│   └── hooks/               useRealtimeQuery
+├── prisma/
+│   ├── schema.prisma        16 models, 10 enums
+│   └── seed.ts              Development seed data
+├── workers/
+│   └── sms-worker.ts        Standalone Redis SMS worker
+├── __tests__/               Jest test suites (60 tests, 10 suites)
+└── e2e/                     Playwright E2E specs
+```
 
 ---
 
-## Contributing
-We welcome contributions to the Kaushiki Coaching Portal! Please see our [Contributing Guidelines](docs/CONTRIBUTING.md) for details on our branching strategy, pull requests, and coding standards.
+## Seed Data Overview
+
+`prisma db seed` creates realistic demo data for all 16 models:
+
+| Model | Records | Notes |
+|-------|---------|-------|
+| Users | 9 | 1 admin, 3 faculty, 3 students, 2 parents |
+| Tracks | 4 | Classes 1–5 through CA Foundation |
+| Subjects | 11 | Mapped to tracks |
+| Batches | 4 | Math, Science, Accountancy, CA Foundation |
+| Enrollments | 5 | 3 students across batches |
+| Payments | 5 | 4 SUCCEEDED, 1 FAILED |
+| Attendance | 40 | 10 sessions × 5 student-batch combos |
+| Test Scores | 11 | Realistic scores with remarks |
+| Doubts | 4 | 2 ANSWERED, 2 OPEN |
+| Inquiries | 5 | Mixed statuses |
+| SMS Logs | 5 | DELIVERED, SENT, FAILED |
+| Notifications | 12 | Doubt answers, payments, enrollments, link approvals, inquiries |
+| Parent Links | 2 | Suresh↔Arjun, Anita↔Sneha |
 
 ---
 
-## 8. License
+## API Endpoints Summary
 
-This project is licensed under the [MIT License](./LICENSE).
+### Auth
+`POST /api/auth/send-otp` | `POST /api/auth/verify-otp` | `POST /api/auth/signup` | `POST /api/auth/login` | `POST /api/auth/google` | `POST /api/auth/refresh` | `POST /api/auth/logout`
 
+### Batches
+`GET/POST /api/batches` | `PATCH /api/batches/[id]` | `GET /api/batches/[id]/roster` | `GET /api/batches/my`
+
+### Enrollment & Payments
+`POST /api/enrollments` | `GET /api/enrollments/me` | `POST /api/payments/create-order` | `POST /api/payments/webhook` | `POST /api/payments/[id]/refund`
+
+### Operations
+`GET/POST /api/attendance` | `POST /api/attendance/bulk` | `GET/POST /api/scores` | `POST/GET /api/doubts` | `PATCH /api/doubts/[id]/respond`
+
+### Notifications
+`GET /api/notifications` | `GET /api/notifications/unread-count` | `POST /api/notifications/read-all` | `PATCH /api/notifications/[id]/read`
+
+### Admin
+`GET/POST/PATCH /api/admin/stats` | `/revenue-trend` | `/enrollment-trend` | `/track-distribution` | `/batch-fill-rates` | `/student-risks` | `/activity-feed` | `/admin/students` | `/admin/faculty` | `/admin/schedule` | `/admin/reports/*` (4 reports, CSV export)
+
+### Admin Config
+`GET /api/settings` | `PATCH /api/settings` | `GET/POST /api/sms-logs`
+
+### Public
+`GET /api/tracks` | `GET /api/tracks/[id]/batches` | `POST /api/inquiries` | `GET /api/health`
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

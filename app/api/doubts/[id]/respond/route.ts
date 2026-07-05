@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { respondDoubtSchema } from '@/lib/validators/doubts';
 import { enqueueSms } from '@/lib/sms/queue';
+import { createNotificationForDoubtAnswered } from '@/lib/notifications';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateRequest(req as AuthenticatedRequest);
@@ -89,6 +90,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       triggerEvent: 'doubt_answered',
       userId: doubt.student.id,
     });
+
+    await createNotificationForDoubtAnswered(id);
 
     return NextResponse.json(updated);
   } catch (err) {
