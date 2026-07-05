@@ -36,6 +36,7 @@ enum BatchStatus {
 enum LinkStatus {
   PENDING
   APPROVED
+  REJECTED
 }
 
 enum EnrollmentStatus {
