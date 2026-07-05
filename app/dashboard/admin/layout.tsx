@@ -3,7 +3,7 @@
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Inbox, Grid3X3, Users, CreditCard, MessageSquare, Settings, LayoutDashboard, LogOut } from 'lucide-react';
+import { Inbox, Grid3X3, Users, CreditCard, MessageSquare, Settings, LayoutDashboard, LogOut, Mail, HelpCircle } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -12,6 +12,8 @@ const navItems = [
   { href: '/dashboard/admin/enrollments', label: 'Enrollments', icon: Users },
   { href: '/dashboard/admin/fees', label: 'Fees', icon: CreditCard },
   { href: '/dashboard/admin/faculty', label: 'Faculty', icon: MessageSquare },
+  { href: '/dashboard/admin/sms-logs', label: 'SMS Logs', icon: Mail },
+  { href: '/dashboard/admin/queues', label: 'Queues', icon: HelpCircle },
   { href: '/dashboard/admin/settings', label: 'Settings', icon: Settings },
 ];
 

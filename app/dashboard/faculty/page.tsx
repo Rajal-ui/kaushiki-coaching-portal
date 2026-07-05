@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { Users, ClipboardCheck, FileSpreadsheet, MessageSquare, Loader2, Check, X } from 'lucide-react';
+import { Users, ClipboardCheck, FileSpreadsheet, MessageSquare, Loader2, Check, X, HelpCircle } from 'lucide-react';
+import QueriesSection from '@/components/QueriesSection';
 
 interface Batch {
   id: string;
@@ -18,7 +19,7 @@ interface Student {
   name: string;
 }
 
-type View = 'dashboard' | 'attendance' | 'scores';
+type View = 'dashboard' | 'attendance' | 'scores' | 'queries';
 
 export default function FacultyDashboard() {
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -255,6 +256,18 @@ export default function FacultyDashboard() {
     );
   }
 
+  if (view === 'queries') {
+    return (
+      <ProtectedRoute allowedRoles={['FACULTY']}>
+        <div className="max-w-4xl mx-auto p-6">
+          <button onClick={() => setView('dashboard')} className="text-sm text-blue-600 hover:underline mb-4">&larr; Back to Dashboard</button>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Doubt Queries</h2>
+          <QueriesSection batchId={selectedBatchId} />
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
   return (
     <ProtectedRoute allowedRoles={['FACULTY']}>
       <div className="max-w-6xl mx-auto">
@@ -318,6 +331,10 @@ export default function FacultyDashboard() {
                     <button onClick={() => selectBatch(batch.id, 'scores')}
                       className="flex-1 py-2 text-xs font-medium bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors">
                       Scores
+                    </button>
+                    <button onClick={() => { setView('queries'); setSelectedBatchId(batch.id); }}
+                      className="flex-1 py-2 text-xs font-medium bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors">
+                      Queries
                     </button>
                   </div>
                 </div>
