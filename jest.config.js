@@ -6,6 +6,9 @@ const config = {
     '^@/(.*)$': '<rootDir>/$1',
     '\\.(css|less|scss|sass)$': '<rootDir>/__mocks__/styleMock.js',
   },
+  transformIgnorePatterns: [
+    '/node_modules/(?!jose|bcryptjs)',
+  ],
   transform: {
     '^.+\\.(t|j)sx?$': ['babel-jest', {}],
   },
