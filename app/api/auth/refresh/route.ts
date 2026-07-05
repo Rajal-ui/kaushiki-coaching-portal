@@ -3,6 +3,7 @@ import { refreshSchema } from '@/lib/validators/auth';
 import { verifyRefreshToken, signAccessToken, signRefreshToken, generateSessionId, hashRefreshToken } from '@/lib/auth/jwt';
 import { buildRefreshTokenRedisKey } from '@/lib/auth/otp';
 import { redis } from '@/lib/redis';
+import { prisma } from '@/lib/db/prisma';
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -57,8 +58,11 @@ export async function POST(req: NextRequest) {
 
     await redis.del(refreshKey);
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const role = user?.role || 'STUDENT';
+
     const newSessionId = generateSessionId();
-    const newAccessToken = await signAccessToken(userId, 'STUDENT', newSessionId);
+    const newAccessToken = await signAccessToken(userId, role, newSessionId);
     const newRefreshToken = await signRefreshToken(userId, newSessionId);
 
     const newRefreshKey = buildRefreshTokenRedisKey(newSessionId);

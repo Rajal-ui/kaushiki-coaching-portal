@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, phone, otp } = parsed.data;
+  const { name, phone, otp, role } = parsed.data;
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { phone } });
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         name,
         phone,
         passwordHash,
-        role: 'STUDENT',
+        role: role || 'STUDENT',
         status: 'ACTIVE',
         phoneVerified: true,
       },

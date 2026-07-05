@@ -32,8 +32,25 @@ export const signupSchema = z.object({
     .string()
     .length(6, 'OTP must be exactly 6 digits')
     .regex(/^\d{6}$/, 'OTP must be numeric'),
+  role: z
+    .enum(['STUDENT', 'PARENT', 'FACULTY'])
+    .optional()
+    .default('STUDENT'),
 });
 
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
+});
+
+export const loginSchema = z.object({
+  identifier: z
+    .string()
+    .min(1, 'Email or phone is required'),
+  password: z
+    .string()
+    .min(1, 'Password is required'),
+});
+
+export const googleAuthSchema = z.object({
+  credential: z.string().min(1, 'Google credential is required'),
 });

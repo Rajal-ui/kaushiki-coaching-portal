@@ -72,4 +72,46 @@ export const authHandlers = [
     }
     return HttpResponse.json({ success: true, message: 'Logged out successfully' });
   }),
+
+  http.post('/api/auth/login', async ({ request }) => {
+    const body = (await request.json()) as { identifier?: string; password?: string };
+    if (!body.identifier || !body.password) {
+      return HttpResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Identifier and password required' } },
+        { status: 400 }
+      );
+    }
+    if (body.identifier === 'suspended@test.com') {
+      return HttpResponse.json(
+        { error: { code: 'ACCOUNT_SUSPENDED', message: 'Account suspended' } },
+        { status: 403 }
+      );
+    }
+    if (body.identifier === 'wrong@test.com') {
+      return HttpResponse.json(
+        { error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email/phone or password' } },
+        { status: 401 }
+      );
+    }
+    return HttpResponse.json({
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+      user: { id: 'mock-user-id', name: 'Password User', phone: body.identifier, role: 'STUDENT', status: 'ACTIVE' },
+    });
+  }),
+
+  http.post('/api/auth/google', async ({ request }) => {
+    const body = (await request.json()) as { credential?: string };
+    if (!body.credential) {
+      return HttpResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Google credential required' } },
+        { status: 400 }
+      );
+    }
+    return HttpResponse.json({
+      accessToken: 'mock-google-access-token',
+      refreshToken: 'mock-google-refresh-token',
+      user: { id: 'google-user-id', name: 'Google User', email: 'google@example.com', role: 'STUDENT', status: 'ACTIVE' },
+    });
+  }),
 ];
