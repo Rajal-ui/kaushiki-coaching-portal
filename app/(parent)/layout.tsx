@@ -1,12 +1,15 @@
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+
 export default function ParentLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Sidebar will go here */}
-      <main className="p-4">{children}</main>
-    </div>
+    <ProtectedRoute allowedRoles={['PARENT']}>
+      <div className="min-h-screen bg-white">
+        <main className="p-4">{children}</main>
+      </div>
+    </ProtectedRoute>
   )
 }
