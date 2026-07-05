@@ -76,6 +76,24 @@ async function main() {
     }
   }
 
+  const defaultSettings = [
+    { key: 'admissions_label', value: 'Admissions Open — 2026-27' },
+    { key: 'institution_phone', value: '+91 9175498572' },
+    { key: 'institution_email', value: 'kaushikiclasses@klnbs.in' },
+    { key: 'institution_address', value: 'Kaushiki Classes, Pune, Maharashtra, India' },
+    { key: 'msg91_template_otp', value: '' },
+    { key: 'msg91_template_transactional', value: '' },
+  ];
+
+  for (const s of defaultSettings) {
+    await prisma.siteSetting.upsert({
+      where: { key: s.key },
+      update: {},
+      create: s,
+    });
+    console.log(`  Setting: ${s.key}`);
+  }
+
   console.log('Seeding complete.');
 }
 

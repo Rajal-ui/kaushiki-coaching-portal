@@ -1,4 +1,6 @@
-import React from "react";
+'use client';
+
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -13,10 +15,69 @@ import {
   Phone, 
   Mail, 
   MapPin, 
-  Check 
+  Check,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 
+const TRACK_OPTIONS = [
+  { value: '', label: 'Select a track...' },
+  { value: 'CLASSES_1_5', label: 'Classes 1–5' },
+  { value: 'CLASSES_6_10', label: 'Classes 6–10' },
+  { value: 'CLASSES_11_12_COMMERCE', label: 'Classes 11–12 Commerce' },
+  { value: 'CA_FOUNDATION_INTERMEDIATE', label: 'CA Foundation & Intermediate' },
+];
+
 export default function Home() {
+  const [inquiryName, setInquiryName] = useState('');
+  const [inquiryPhone, setInquiryPhone] = useState('');
+  const [inquiryTrack, setInquiryTrack] = useState('');
+  const [inquiryMessage, setInquiryMessage] = useState('');
+  const [inquiryHoneypot, setInquiryHoneypot] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [inquiryStatus, setInquiryStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [inquiryError, setInquiryError] = useState('');
+
+  async function handleInquiry(e: React.FormEvent) {
+    e.preventDefault();
+    if (inquiryPhone.replace(/\D/g, '').length !== 10) {
+      setInquiryStatus('error');
+      setInquiryError('Please enter a valid 10-digit phone number');
+      return;
+    }
+    setSubmitting(true);
+    setInquiryStatus('idle');
+    setInquiryError('');
+    try {
+      const res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: inquiryName,
+          phone: inquiryPhone,
+          trackName: inquiryTrack || undefined,
+          message: inquiryMessage || undefined,
+          _honeypot: inquiryHoneypot,
+        }),
+      });
+      if (res.ok) {
+        setInquiryStatus('success');
+        setInquiryName('');
+        setInquiryPhone('');
+        setInquiryTrack('');
+        setInquiryMessage('');
+      } else {
+        const data = await res.json();
+        setInquiryStatus('error');
+        setInquiryError(data.error || 'Failed to submit. Please try again later.');
+      }
+    } catch {
+      setInquiryStatus('error');
+      setInquiryError('Network error. Please try again.');
+    }
+    setSubmitting(false);
+  }
   return (
     <div className="flex flex-col min-h-screen bg-bg">
       {/* Public Header */}
@@ -321,38 +382,60 @@ export default function Home() {
 
               {/* Inquiry Form */}
               <div className="bg-bg p-8 rounded-xl border border-border shadow-xs">
-                <form className="space-y-4">
+                <form onSubmit={handleInquiry} className="space-y-4">
                   <h3 className="font-display font-bold text-xl text-dark pb-2 border-b border-border">Admissions Inquiry</h3>
+
+                  {inquiryStatus === 'success' && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      Thank you! We have received your inquiry and will get back to you shortly.
+                    </div>
+                  )}
+                  {inquiryStatus === 'error' && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      {inquiryError}
+                    </div>
+                  )}
+
+                  {/* Honeypot — hidden from users */}
+                  <div className="absolute -left-[9999px]" aria-hidden="true">
+                    <input
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={inquiryHoneypot}
+                      onChange={e => setInquiryHoneypot(e.target.value)}
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-body mb-1">Your Full Name</label>
-                    <Input type="text" placeholder="e.g. Rahul Sharma" />
+                    <Input type="text" placeholder="e.g. Rahul Sharma" value={inquiryName} onChange={e => setInquiryName(e.target.value)} required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-body mb-1">Contact Phone</label>
                     <div className="relative flex rounded-md shadow-xs">
-                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-border bg-surface text-muted text-sm font-medium">
-                        +91
-                      </span>
-                      <Input type="tel" placeholder="10-digit number" className="rounded-l-none" />
+                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-border bg-surface text-muted text-sm font-medium">+91</span>
+                      <Input type="tel" placeholder="10-digit number" className="rounded-l-none" value={inquiryPhone} onChange={e => setInquiryPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} required />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-body mb-1">Track of Interest</label>
-                    <select className="flex h-12 w-full rounded-md border border-border bg-surface px-3 py-2 text-base text-dark shadow-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-50">
-                      <option>Classes 1–5</option>
-                      <option>Classes 6–10</option>
-                      <option>Classes 11–12 Commerce</option>
-                      <option>CA Foundation & Intermediate</option>
+                    <select value={inquiryTrack} onChange={e => setInquiryTrack(e.target.value)} className="flex h-12 w-full rounded-md border border-border bg-surface px-3 py-2 text-base text-dark shadow-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/25">
+                      {TRACK_OPTIONS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-body mb-1">Message (Optional)</label>
-                    <textarea 
+                    <textarea value={inquiryMessage} onChange={e => setInquiryMessage(e.target.value)}
                       className="flex min-h-[80px] w-full rounded-md border border-border bg-surface px-3 py-2 text-base text-dark shadow-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/25"
-                      placeholder="Ask about schedules, fees, or class formats..."
-                    />
+                      placeholder="Ask about schedules, fees, or class formats..." />
                   </div>
-                  <Button type="button" className="w-full">Submit Lead Inquiry</Button>
+                  <Button type="submit" disabled={submitting} className="w-full">
+                    {submitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting...</> : 'Submit Lead Inquiry'}
+                  </Button>
                 </form>
               </div>
             </div>
