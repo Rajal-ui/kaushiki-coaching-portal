@@ -28,76 +28,84 @@ export async function POST(req: NextRequest) {
 
   const { name, phone, otp } = parsed.data;
 
-  const existingUser = await prisma.user.findUnique({ where: { phone } });
-  if (existingUser) {
-    return NextResponse.json(
-      { error: { code: 'PHONE_EXISTS', message: 'An account with this phone number already exists. Please log in.' } },
-      { status: 409 }
-    );
-  }
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { phone } });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: { code: 'PHONE_EXISTS', message: 'An account with this phone number already exists. Please log in.' } },
+        { status: 409 }
+      );
+    }
 
-  const otpKey = buildOtpRedisKey(phone);
-  const stored = await redis.get(otpKey);
-  if (!stored) {
-    return NextResponse.json(
-      { error: { code: 'OTP_EXPIRED', message: 'OTP expired or not requested. Please request a new one.' } },
-      { status: 400 }
-    );
-  }
+    const otpKey = buildOtpRedisKey(phone);
+    const stored = await redis.get(otpKey);
+    if (!stored) {
+      return NextResponse.json(
+        { error: { code: 'OTP_EXPIRED', message: 'OTP expired or not requested. Please request a new one.' } },
+        { status: 400 }
+      );
+    }
 
-  const { hash: hashedOtp, attempts } = JSON.parse(stored) as { hash: string; attempts: number };
+    const { hash: hashedOtp, attempts } = JSON.parse(stored) as { hash: string; attempts: number };
 
-  if (attempts >= MAX_ATTEMPTS) {
+    if (attempts >= MAX_ATTEMPTS) {
+      await redis.del(otpKey);
+      return NextResponse.json(
+        { error: { code: 'OTP_EXHAUSTED', message: 'Maximum attempts exceeded. Please request a new OTP.' } },
+        { status: 400 }
+      );
+    }
+
+    const isValid = await verifyOtpHash(otp, hashedOtp);
+    if (!isValid) {
+      await redis.set(otpKey, JSON.stringify({ hash: hashedOtp, attempts: attempts + 1 }), 'KEEPTTL');
+      const remaining = MAX_ATTEMPTS - attempts - 1;
+      return NextResponse.json(
+        { error: { code: 'INVALID_OTP', message: `Invalid OTP. ${remaining} attempt(s) remaining.` } },
+        { status: 400 }
+      );
+    }
+
     await redis.del(otpKey);
+
+    const passwordHash = await bcrypt.hash(phone.slice(-6), 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        phone,
+        passwordHash,
+        role: 'STUDENT',
+        status: 'ACTIVE',
+        phoneVerified: true,
+      },
+    });
+
+    const sessionId = generateSessionId();
+    const accessToken = await signAccessToken(user.id, user.role, sessionId);
+    const refreshToken = await signRefreshToken(user.id, sessionId);
+
+    const refreshKey = buildRefreshTokenRedisKey(sessionId);
+    const refreshHash = hashRefreshToken(refreshToken);
+    await redis.set(refreshKey, refreshHash, 'EX', 7 * 24 * 60 * 60);
+
+    return NextResponse.json({
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
+    }, { status: 201 });
+  } catch (err) {
+    console.error('[Signup] Error:', err);
     return NextResponse.json(
-      { error: { code: 'OTP_EXHAUSTED', message: 'Maximum attempts exceeded. Please request a new OTP.' } },
-      { status: 400 }
+      { error: { code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' } },
+      { status: 503 }
     );
   }
-
-  const isValid = await verifyOtpHash(otp, hashedOtp);
-  if (!isValid) {
-    await redis.set(otpKey, JSON.stringify({ hash: hashedOtp, attempts: attempts + 1 }), 'KEEPTTL');
-    const remaining = MAX_ATTEMPTS - attempts - 1;
-    return NextResponse.json(
-      { error: { code: 'INVALID_OTP', message: `Invalid OTP. ${remaining} attempt(s) remaining.` } },
-      { status: 400 }
-    );
-  }
-
-  await redis.del(otpKey);
-
-  const passwordHash = await bcrypt.hash(phone.slice(-6), 10);
-
-  const user = await prisma.user.create({
-    data: {
-      name,
-      phone,
-      passwordHash,
-      role: 'STUDENT',
-      status: 'ACTIVE',
-      phoneVerified: true,
-    },
-  });
-
-  const sessionId = generateSessionId();
-  const accessToken = await signAccessToken(user.id, user.role, sessionId);
-  const refreshToken = await signRefreshToken(user.id, sessionId);
-
-  const refreshKey = buildRefreshTokenRedisKey(sessionId);
-  const refreshHash = hashRefreshToken(refreshToken);
-  await redis.set(refreshKey, refreshHash, 'EX', 7 * 24 * 60 * 60);
-
-  return NextResponse.json({
-    accessToken,
-    refreshToken,
-    user: {
-      id: user.id,
-      name: user.name,
-      phone: user.phone,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-    },
-  }, { status: 201 });
 }

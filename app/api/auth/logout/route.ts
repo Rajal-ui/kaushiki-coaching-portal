@@ -9,8 +9,16 @@ export async function POST(req: AuthenticatedRequest) {
 
   const { user } = authResult;
 
-  const refreshKey = buildRefreshTokenRedisKey(user.sessionId);
-  await redis.del(refreshKey);
+  try {
+    const refreshKey = buildRefreshTokenRedisKey(user.sessionId);
+    await redis.del(refreshKey);
 
-  return NextResponse.json({ success: true, message: 'Logged out successfully' });
+    return NextResponse.json({ success: true, message: 'Logged out successfully' });
+  } catch (err) {
+    console.error('[Logout] Error:', err);
+    return NextResponse.json(
+      { error: { code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' } },
+      { status: 503 }
+    );
+  }
 }

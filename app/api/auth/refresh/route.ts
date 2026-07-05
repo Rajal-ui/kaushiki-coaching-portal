@@ -25,47 +25,55 @@ export async function POST(req: NextRequest) {
 
   const { refreshToken } = parsed.data;
 
-  let payload;
   try {
-    payload = await verifyRefreshToken(refreshToken);
-  } catch {
+    let payload;
+    try {
+      payload = await verifyRefreshToken(refreshToken);
+    } catch {
+      return NextResponse.json(
+        { error: { code: 'INVALID_REFRESH_TOKEN', message: 'Refresh token expired or invalid' } },
+        { status: 401 }
+      );
+    }
+
+    const { sub: userId, sessionId: oldSessionId } = payload;
+
+    const refreshKey = buildRefreshTokenRedisKey(oldSessionId);
+    const storedHash = await redis.get(refreshKey);
+    if (!storedHash) {
+      return NextResponse.json(
+        { error: { code: 'REFRESH_TOKEN_REVOKED', message: 'Refresh token has been revoked' } },
+        { status: 401 }
+      );
+    }
+
+    const expectedHash = hashRefreshToken(refreshToken);
+    if (storedHash !== expectedHash) {
+      return NextResponse.json(
+        { error: { code: 'REFRESH_TOKEN_MISMATCH', message: 'Refresh token does not match stored value' } },
+        { status: 401 }
+      );
+    }
+
+    await redis.del(refreshKey);
+
+    const newSessionId = generateSessionId();
+    const newAccessToken = await signAccessToken(userId, 'STUDENT', newSessionId);
+    const newRefreshToken = await signRefreshToken(userId, newSessionId);
+
+    const newRefreshKey = buildRefreshTokenRedisKey(newSessionId);
+    const newRefreshHash = hashRefreshToken(newRefreshToken);
+    await redis.set(newRefreshKey, newRefreshHash, 'EX', 7 * 24 * 60 * 60);
+
+    return NextResponse.json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (err) {
+    console.error('[Refresh Token] Error:', err);
     return NextResponse.json(
-      { error: { code: 'INVALID_REFRESH_TOKEN', message: 'Refresh token expired or invalid' } },
-      { status: 401 }
+      { error: { code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' } },
+      { status: 503 }
     );
   }
-
-  const { sub: userId, sessionId: oldSessionId } = payload;
-
-  const refreshKey = buildRefreshTokenRedisKey(oldSessionId);
-  const storedHash = await redis.get(refreshKey);
-  if (!storedHash) {
-    return NextResponse.json(
-      { error: { code: 'REFRESH_TOKEN_REVOKED', message: 'Refresh token has been revoked' } },
-      { status: 401 }
-    );
-  }
-
-  const expectedHash = hashRefreshToken(refreshToken);
-  if (storedHash !== expectedHash) {
-    return NextResponse.json(
-      { error: { code: 'REFRESH_TOKEN_MISMATCH', message: 'Refresh token does not match stored value' } },
-      { status: 401 }
-    );
-  }
-
-  await redis.del(refreshKey);
-
-  const newSessionId = generateSessionId();
-  const newAccessToken = await signAccessToken(userId, 'STUDENT', newSessionId);
-  const newRefreshToken = await signRefreshToken(userId, newSessionId);
-
-  const newRefreshKey = buildRefreshTokenRedisKey(newSessionId);
-  const newRefreshHash = hashRefreshToken(newRefreshToken);
-  await redis.set(newRefreshKey, newRefreshHash, 'EX', 7 * 24 * 60 * 60);
-
-  return NextResponse.json({
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
-  });
 }

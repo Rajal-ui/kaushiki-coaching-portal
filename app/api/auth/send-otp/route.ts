@@ -25,26 +25,34 @@ export async function POST(req: NextRequest) {
 
   const { phone } = parsed.data;
 
-  const rateLimitKey = buildRateLimitRedisKey(phone);
-  const currentCount = await redis.incr(rateLimitKey);
-  if (currentCount === 1) {
-    await redis.expire(rateLimitKey, RATE_LIMIT_WINDOW_SECONDS);
-  }
-  if (currentCount > RATE_LIMIT_MAX) {
-    const ttl = await redis.ttl(rateLimitKey);
+  try {
+    const rateLimitKey = buildRateLimitRedisKey(phone);
+    const currentCount = await redis.incr(rateLimitKey);
+    if (currentCount === 1) {
+      await redis.expire(rateLimitKey, RATE_LIMIT_WINDOW_SECONDS);
+    }
+    if (currentCount > RATE_LIMIT_MAX) {
+      const ttl = await redis.ttl(rateLimitKey);
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMIT_EXCEEDED', message: `Too many OTP requests. Try again in ${Math.ceil(ttl / 60)} minutes.` } },
+        { status: 429 }
+      );
+    }
+
+    const otp = generateOtp();
+    const hashedOtp = await hashOtp(otp);
+    const otpKey = buildOtpRedisKey(phone);
+
+    await redis.set(otpKey, JSON.stringify({ hash: hashedOtp, attempts: 0 }), 'EX', OTP_TTL_SECONDS);
+
+    await enqueueMockSms(phone, `Your Kaushiki Classes OTP is: ${otp}. It expires in 5 minutes.`);
+
+    return NextResponse.json({ success: true, message: 'OTP sent successfully' });
+  } catch (err) {
+    console.error('[Send OTP] Error:', err);
     return NextResponse.json(
-      { error: { code: 'RATE_LIMIT_EXCEEDED', message: `Too many OTP requests. Try again in ${Math.ceil(ttl / 60)} minutes.` } },
-      { status: 429 }
+      { error: { code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' } },
+      { status: 503 }
     );
   }
-
-  const otp = generateOtp();
-  const hashedOtp = await hashOtp(otp);
-  const otpKey = buildOtpRedisKey(phone);
-
-  await redis.set(otpKey, JSON.stringify({ hash: hashedOtp, attempts: 0 }), 'EX', OTP_TTL_SECONDS);
-
-  await enqueueMockSms(phone, `Your Kaushiki Classes OTP is: ${otp}. It expires in 5 minutes.`);
-
-  return NextResponse.json({ success: true, message: 'OTP sent successfully' });
 }

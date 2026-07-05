@@ -27,84 +27,92 @@ export async function POST(req: NextRequest) {
 
   const { phone, otp } = parsed.data;
 
-  const otpKey = buildOtpRedisKey(phone);
-  const stored = await redis.get(otpKey);
-  if (!stored) {
-    return NextResponse.json(
-      { error: { code: 'OTP_EXPIRED', message: 'OTP expired or not requested. Please request a new one.' } },
-      { status: 400 }
-    );
-  }
+  try {
+    const otpKey = buildOtpRedisKey(phone);
+    const stored = await redis.get(otpKey);
+    if (!stored) {
+      return NextResponse.json(
+        { error: { code: 'OTP_EXPIRED', message: 'OTP expired or not requested. Please request a new one.' } },
+        { status: 400 }
+      );
+    }
 
-  const { hash: hashedOtp, attempts } = JSON.parse(stored) as { hash: string; attempts: number };
+    const { hash: hashedOtp, attempts } = JSON.parse(stored) as { hash: string; attempts: number };
 
-  if (attempts >= MAX_ATTEMPTS) {
+    if (attempts >= MAX_ATTEMPTS) {
+      await redis.del(otpKey);
+      return NextResponse.json(
+        { error: { code: 'OTP_EXHAUSTED', message: 'Maximum attempts exceeded. Please request a new OTP.' } },
+        { status: 400 }
+      );
+    }
+
+    const isValid = await verifyOtpHash(otp, hashedOtp);
+
+    if (!isValid) {
+      await redis.set(otpKey, JSON.stringify({ hash: hashedOtp, attempts: attempts + 1 }), 'KEEPTTL');
+      const remaining = MAX_ATTEMPTS - attempts - 1;
+      return NextResponse.json(
+        { error: { code: 'INVALID_OTP', message: `Invalid OTP. ${remaining} attempt(s) remaining.` } },
+        { status: 400 }
+      );
+    }
+
     await redis.del(otpKey);
-    return NextResponse.json(
-      { error: { code: 'OTP_EXHAUSTED', message: 'Maximum attempts exceeded. Please request a new OTP.' } },
-      { status: 400 }
-    );
-  }
 
-  const isValid = await verifyOtpHash(otp, hashedOtp);
+    let user = await prisma.user.findUnique({ where: { phone } });
 
-  if (!isValid) {
-    await redis.set(otpKey, JSON.stringify({ hash: hashedOtp, attempts: attempts + 1 }), 'KEEPTTL');
-    const remaining = MAX_ATTEMPTS - attempts - 1;
-    return NextResponse.json(
-      { error: { code: 'INVALID_OTP', message: `Invalid OTP. ${remaining} attempt(s) remaining.` } },
-      { status: 400 }
-    );
-  }
+    if (!user) {
+      return NextResponse.json(
+        { error: { code: 'USER_NOT_FOUND', message: 'No account found with this phone number. Please sign up first.' } },
+        { status: 404 }
+      );
+    }
 
-  await redis.del(otpKey);
+    if (user.status === 'SUSPENDED') {
+      return NextResponse.json(
+        { error: { code: 'ACCOUNT_SUSPENDED', message: 'Your account has been suspended. Contact support.' } },
+        { status: 403 }
+      );
+    }
 
-  let user = await prisma.user.findUnique({ where: { phone } });
+    if (user.status === 'PENDING_VERIFICATION') {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { status: 'ACTIVE', phoneVerified: true },
+      });
+    } else if (!user.phoneVerified) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { phoneVerified: true },
+      });
+    }
 
-  if (!user) {
-    return NextResponse.json(
-      { error: { code: 'USER_NOT_FOUND', message: 'No account found with this phone number. Please sign up first.' } },
-      { status: 404 }
-    );
-  }
+    const sessionId = generateSessionId();
+    const accessToken = await signAccessToken(user.id, user.role, sessionId);
+    const refreshToken = await signRefreshToken(user.id, sessionId);
 
-  if (user.status === 'SUSPENDED') {
-    return NextResponse.json(
-      { error: { code: 'ACCOUNT_SUSPENDED', message: 'Your account has been suspended. Contact support.' } },
-      { status: 403 }
-    );
-  }
+    const refreshKey = buildRefreshTokenRedisKey(sessionId);
+    const refreshHash = hashRefreshToken(refreshToken);
+    await redis.set(refreshKey, refreshHash, 'EX', 7 * 24 * 60 * 60);
 
-  if (user.status === 'PENDING_VERIFICATION') {
-    user = await prisma.user.update({
-      where: { id: user.id },
-      data: { status: 'ACTIVE', phoneVerified: true },
+    return NextResponse.json({
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
     });
-  } else if (!user.phoneVerified) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { phoneVerified: true },
-    });
+  } catch (err) {
+    console.error('[Verify OTP] Error:', err);
+    return NextResponse.json(
+      { error: { code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' } },
+      { status: 503 }
+    );
   }
-
-  const sessionId = generateSessionId();
-  const accessToken = await signAccessToken(user.id, user.role, sessionId);
-  const refreshToken = await signRefreshToken(user.id, sessionId);
-
-  const refreshKey = buildRefreshTokenRedisKey(sessionId);
-  const refreshHash = hashRefreshToken(refreshToken);
-  await redis.set(refreshKey, refreshHash, 'EX', 7 * 24 * 60 * 60);
-
-  return NextResponse.json({
-    accessToken,
-    refreshToken,
-    user: {
-      id: user.id,
-      name: user.name,
-      phone: user.phone,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-    },
-  });
 }
