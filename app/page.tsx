@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,9 +44,12 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link href="/login" className="inline-flex items-center justify-center h-9 px-4 text-sm rounded-sm font-sans font-medium transition-all bg-transparent text-muted hover:bg-border hover:text-dark">
               Login
-            </Button>
+            </Link>
+            <Link href="/signup" className="inline-flex items-center justify-center h-9 px-4 text-sm rounded-sm font-sans font-medium transition-all bg-primary text-white hover:bg-primary-light">
+              Sign Up
+            </Link>
             <Button size="sm" asChild>
               <a href="#contact">Inquire Now</a>
             </Button>
