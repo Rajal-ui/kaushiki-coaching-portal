@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { loadGoogleScript } from '@/lib/google-one-tap';
 
 const ROLE_REDIRECTS: Record<string, string> = {
   STUDENT: '/dashboard/student',
@@ -28,6 +29,50 @@ export default function SignupPage() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadGoogleScript().then(() => {
+      const { google } = window as unknown as { google?: { accounts: { id: { initialize: Function; renderButton: Function } } } };
+      if (google?.accounts?.id && googleBtnRef.current) {
+        google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          callback: async (response: { credential?: string }) => {
+            if (!response.credential) return;
+            setLoading(true);
+            setError('');
+            try {
+              const res = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential }),
+              });
+              if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error?.message || 'Google signup failed');
+              }
+              const data = await res.json();
+              localStorage.setItem('accessToken', data.accessToken);
+              localStorage.setItem('refreshToken', data.refreshToken);
+              router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Something went wrong');
+            } finally {
+              setLoading(false);
+            }
+          },
+        });
+        if (googleBtnRef.current) {
+          google.accounts.id.renderButton(googleBtnRef.current, {
+            theme: 'outline',
+            size: 'large',
+            width: 384,
+            text: 'signup_with',
+          });
+        }
+      }
+    });
+  }, [router]);
 
   async function handleSendOtp(e: FormEvent) {
     e.preventDefault();
@@ -144,6 +189,14 @@ export default function SignupPage() {
               className="w-full h-12 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               {loading ? 'Sending OTP...' : 'Send OTP'}
             </button>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+              <div className="relative flex justify-center"><span className="bg-white px-3 text-sm text-gray-400">or</span></div>
+            </div>
+
+            <div ref={googleBtnRef} className="flex justify-center" />
+
             <p className="text-center text-sm text-gray-500">
               Already have an account?{' '}
               <Link href="/login" className="text-blue-600 hover:underline font-medium">Sign in</Link>

@@ -163,7 +163,8 @@ export default function LoginPage() {
     <div className="w-full max-w-md mx-auto px-4">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h1>
-        <p className="text-gray-500 mb-6">Sign in to your Kaushiki Classes account</p>
+        <p className="text-gray-500 mb-1">Sign in to your Kaushiki Classes account</p>
+        <p className="text-gray-400 text-xs mb-6">Student · Parent · Faculty</p>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
@@ -252,6 +253,12 @@ export default function LoginPage() {
         <div ref={googleBtnRef} className="flex justify-center" />
 
         {method === 'otp' && otpStep === 'phone' && (
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="text-blue-600 hover:underline font-medium">Sign up</Link>
+          </p>
+        )}
+        {method === 'password' && (
           <p className="text-center text-sm text-gray-500 mt-6">
             Don&apos;t have an account?{' '}
             <Link href="/signup" className="text-blue-600 hover:underline font-medium">Sign up</Link>

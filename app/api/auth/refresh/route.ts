@@ -39,8 +39,18 @@ export async function POST(req: NextRequest) {
 
     const { sub: userId, sessionId: oldSessionId } = payload;
 
-    const refreshKey = buildRefreshTokenRedisKey(oldSessionId);
-    const storedHash = await redis.get(refreshKey);
+    let storedHash: string | null = null;
+    try {
+      const refreshKey = buildRefreshTokenRedisKey(oldSessionId);
+      storedHash = await redis.get(refreshKey);
+    } catch {
+      console.warn('[Refresh Token] Redis unavailable — cannot validate refresh token');
+      return NextResponse.json(
+        { error: { code: 'SERVICE_UNAVAILABLE', message: 'Session service unavailable. Please try again later.' } },
+        { status: 503 }
+      );
+    }
+
     if (!storedHash) {
       return NextResponse.json(
         { error: { code: 'REFRESH_TOKEN_REVOKED', message: 'Refresh token has been revoked' } },
@@ -56,7 +66,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await redis.del(refreshKey);
+    try {
+      const refreshKey = buildRefreshTokenRedisKey(oldSessionId);
+      await redis.del(refreshKey);
+    } catch {
+      console.warn('[Refresh Token] Redis unavailable — could not delete old refresh token');
+    }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const role = user?.role || 'STUDENT';
@@ -67,7 +82,11 @@ export async function POST(req: NextRequest) {
 
     const newRefreshKey = buildRefreshTokenRedisKey(newSessionId);
     const newRefreshHash = hashRefreshToken(newRefreshToken);
-    await redis.set(newRefreshKey, newRefreshHash, 'EX', 7 * 24 * 60 * 60);
+    try {
+      await redis.set(newRefreshKey, newRefreshHash, 'EX', 7 * 24 * 60 * 60);
+    } catch {
+      console.warn('[Refresh Token] Redis unavailable — new refresh token not cached');
+    }
 
     return NextResponse.json({
       accessToken: newAccessToken,

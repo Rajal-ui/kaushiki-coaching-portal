@@ -80,7 +80,11 @@ export async function POST(req: NextRequest) {
 
     const refreshKey = buildRefreshTokenRedisKey(sessionId);
     const refreshHash = hashRefreshToken(refreshToken);
-    await redis.set(refreshKey, refreshHash, 'EX', 7 * 24 * 60 * 60);
+    try {
+      await redis.set(refreshKey, refreshHash, 'EX', 7 * 24 * 60 * 60);
+    } catch {
+      console.warn('[Google Auth] Redis unavailable — refresh token not cached');
+    }
 
     return NextResponse.json({
       accessToken,
