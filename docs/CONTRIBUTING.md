@@ -198,6 +198,10 @@ prisma/
 
 ## 4. Mock Data & Testing
 
+### 💡 Local Development OTP Tip
+> [!NOTE]
+> **Phone Login / OTP Verification:** During local development, you do not need an external SMS gateway integration. When you trigger a phone login request, the generated 6-digit OTP is automatically logged directly to your terminal/server console. Simply copy it from your console to complete the sign-in flow.
+
 ### Seed Data (`prisma db seed`)
 
 The seed creates fully connected mock data across all 16 models. Run it anytime to reset to a known state:
