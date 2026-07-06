@@ -21,45 +21,53 @@ function SummaryCard({ icon: Icon, label, value, color }: { icon: any; label: st
 }
 
 export default function AdminDashboardPage() {
+  function authFetch(url: string) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => {
+      if (!r.ok) throw new Error(`API error ${r.status}`);
+      return r.json();
+    });
+  }
+
   const { data: stats } = useRealtimeQuery<any>(
     ['admin-stats'],
-    () => fetch('/api/admin/stats').then(r => r.json()).then(d => d.data),
+    () => authFetch('/api/admin/stats').then(d => d.data),
     { pollInterval: 30_000 }
   );
 
   const { data: revenueTrend } = useRealtimeQuery<any[]>(
     ['admin-revenue-trend'],
-    () => fetch('/api/admin/revenue-trend?months=6').then(r => r.json()),
+    () => authFetch('/api/admin/revenue-trend?months=6'),
     { pollInterval: 60_000 }
   );
 
   const { data: enrollmentTrend } = useRealtimeQuery<any[]>(
     ['admin-enrollment-trend'],
-    () => fetch('/api/admin/enrollment-trend?months=6').then(r => r.json()),
+    () => authFetch('/api/admin/enrollment-trend?months=6'),
     { pollInterval: 60_000 }
   );
 
   const { data: trackDist } = useRealtimeQuery<any[]>(
     ['admin-track-dist'],
-    () => fetch('/api/admin/track-distribution').then(r => r.json()).then(d => d.data),
+    () => authFetch('/api/admin/track-distribution').then(d => d.data),
     { pollInterval: 60_000 }
   );
 
   const { data: fillRates } = useRealtimeQuery<any[]>(
     ['admin-fill-rates'],
-    () => fetch('/api/admin/batch-fill-rates').then(r => r.json()).then(d => d.data),
+    () => authFetch('/api/admin/batch-fill-rates').then(d => d.data),
     { pollInterval: 60_000 }
   );
 
   const { data: risks } = useRealtimeQuery<any[]>(
     ['admin-risks'],
-    () => fetch('/api/admin/student-risks').then(r => r.json()).then(d => d.data),
+    () => authFetch('/api/admin/student-risks').then(d => d.data),
     { pollInterval: 30_000 }
   );
 
   const { data: activity } = useRealtimeQuery<any[]>(
     ['admin-activity'],
-    () => fetch('/api/admin/activity-feed?limit=10').then(r => r.json()),
+    () => authFetch('/api/admin/activity-feed?limit=10'),
     { pollInterval: 15_000 }
   );
 

@@ -79,17 +79,24 @@ export default function DashboardSidebar({ role, collapsed, onToggle }: Props) {
       </div>
 
       <nav className="flex-1 py-4 space-y-1 overflow-y-auto">
-        {nav.map(item => {
-          const active = pathname === item.href || pathname.startsWith(item.href + '/');
-          return (
-            <Link key={item.href} href={item.href}
-              className={`flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                ${active ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-              {item.icon}
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
+        {(() => {
+          const bestMatch = nav.reduce<NavItem | null>((best, item) => {
+            if (pathname === item.href) return item;
+            if (pathname.startsWith(item.href + '/') && (!best || item.href.length > best.href.length)) return item;
+            return best;
+          }, null);
+          return nav.map(item => {
+            const active = bestMatch?.href === item.href;
+            return (
+              <Link key={item.href} href={item.href}
+                className={`flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  ${active ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                {item.icon}
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
+            );
+          });
+        })()}
       </nav>
 
       <div className="p-4 border-t border-gray-200">
