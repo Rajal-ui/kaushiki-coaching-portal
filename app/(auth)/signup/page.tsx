@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loadGoogleScript } from '@/lib/google-one-tap';
+import { useAuth } from '@/lib/auth/AuthContext';
 
 const ROLE_REDIRECTS: Record<string, string> = {
   STUDENT: '/dashboard/student',
@@ -22,6 +23,7 @@ const ROLES = [
 
 export default function SignupPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [step, setStep] = useState<Step>('details');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -52,8 +54,7 @@ export default function SignupPage() {
                 throw new Error(data.error?.message || 'Google signup failed');
               }
               const data = await res.json();
-              localStorage.setItem('accessToken', data.accessToken);
-              localStorage.setItem('refreshToken', data.refreshToken);
+              login(data.accessToken, data.refreshToken);
               router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -112,8 +113,7 @@ export default function SignupPage() {
         throw new Error(data.error?.message || 'Signup failed');
       }
       const data = await res.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      login(data.accessToken, data.refreshToken);
       router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');

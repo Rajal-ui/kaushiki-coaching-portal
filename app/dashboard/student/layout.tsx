@@ -5,7 +5,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import DashboardSidebar from '@/components/layout/DashboardSidebar';
 import TopBar from '@/components/layout/TopBar';
 
-export default function StudentLayout({ children }: { children: React.ReactNode }) {
+export default function StudentDashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import PublicHeader from "@/components/layout/PublicHeader";
 import {
   Lightbulb,
   CheckSquare,
@@ -64,40 +65,7 @@ const FACULTY = [
 export default function AboutPage() {
   return (
     <div className="flex flex-col min-h-screen bg-bg">
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/80 backdrop-blur-md">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 max-w-7xl">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              K
-            </div>
-            <span className="font-display font-bold text-xl text-dark tracking-tight">
-              Kaushiki Classes
-            </span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-8 font-sans font-medium text-sm text-body">
-            <Link href="/" className="hover:text-primary transition-colors">
-              Home
-            </Link>
-            <Link href="/#programs" className="hover:text-primary transition-colors">
-              Programs
-            </Link>
-            <a href="#contact" className="hover:text-primary transition-colors">
-              Contact
-            </a>
-          </nav>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="inline-flex items-center justify-center h-9 px-4 text-sm rounded-sm font-sans font-medium transition-all bg-transparent text-muted hover:bg-border hover:text-dark">
-              Login
-            </Link>
-            <Link href="/signup" className="inline-flex items-center justify-center h-9 px-4 text-sm rounded-sm font-sans font-medium transition-all bg-primary text-white hover:bg-primary-light">
-              Sign Up
-            </Link>
-            <Button size="sm" asChild>
-              <a href="/#contact">Inquire Now</a>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="flex-1">
         <section className="relative overflow-hidden py-20 lg:py-32">

@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { loadGoogleScript } from '@/lib/google-one-tap';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { LayoutDashboard } from 'lucide-react';
 
 const ROLE_REDIRECTS: Record<string, string> = {
   STUDENT: '/dashboard/student',
@@ -17,6 +19,7 @@ type OtpStep = 'phone' | 'verify';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, isAuthenticated, login, logout } = useAuth();
   const [method, setMethod] = useState<AuthMethod>('otp');
   const [otpStep, setOtpStep] = useState<OtpStep>('phone');
   const [phone, setPhone] = useState('');
@@ -48,8 +51,7 @@ export default function LoginPage() {
                 throw new Error(data.error?.message || 'Google login failed');
               }
               const data = await res.json();
-              localStorage.setItem('accessToken', data.accessToken);
-              localStorage.setItem('refreshToken', data.refreshToken);
+              login(data.accessToken, data.refreshToken);
               router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -108,8 +110,7 @@ export default function LoginPage() {
         throw new Error(data.error?.message || 'Invalid OTP');
       }
       const data = await res.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      login(data.accessToken, data.refreshToken);
       router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -133,8 +134,7 @@ export default function LoginPage() {
         throw new Error(data.error?.message || 'Login failed');
       }
       const data = await res.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      login(data.accessToken, data.refreshToken);
       router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -157,6 +157,28 @@ export default function LoginPage() {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       document.getElementById(`otp-${index - 1}`)?.focus();
     }
+  }
+
+  if (isAuthenticated && user) {
+    return (
+      <div className="w-full max-w-md mx-auto px-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome back!</h1>
+          <p className="text-gray-500 mb-6">You are logged in as <span className="font-medium text-gray-700">{user.name}</span></p>
+          <Link
+            href={ROLE_REDIRECTS[user.role] || '/dashboard/student'}
+            className="inline-flex items-center gap-2 h-11 px-6 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Go to Dashboard
+          </Link>
+          <p className="text-sm text-gray-400 mt-4">
+            Not {user.name}?{' '}
+            <button onClick={logout} className="text-red-600 hover:underline font-medium">Logout</button>
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

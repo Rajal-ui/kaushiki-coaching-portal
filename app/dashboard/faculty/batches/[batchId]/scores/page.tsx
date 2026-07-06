@@ -54,7 +54,12 @@ export default function FacultyScoresPage() {
     fetch(`/api/batches/${batchId}/roster`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(json => {
-        const list: Student[] = json.data ?? json ?? [];
+        const raw: any[] = json.students ?? json.data ?? (Array.isArray(json) ? json : []);
+        const list: Student[] = raw.map((s: any) => ({
+          id: s.id,
+          studentId: s.id,
+          studentName: s.name,
+        }));
         setStudents(list);
         const init: Record<string, { score: number; remark: string }> = {};
         list.forEach(s => { init[s.studentId] = { score: 0, remark: '' }; });

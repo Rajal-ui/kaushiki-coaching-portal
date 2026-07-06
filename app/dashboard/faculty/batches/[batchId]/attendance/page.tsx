@@ -31,7 +31,12 @@ export default function FacultyAttendancePage() {
     })
       .then(r => r.json())
       .then(json => {
-        const list: Student[] = json.data ?? json ?? [];
+        const raw: any[] = json.students ?? json.data ?? (Array.isArray(json) ? json : []);
+        const list: Student[] = raw.map((s: any) => ({
+          id: s.id,
+          studentId: s.id,
+          studentName: s.name,
+        }));
         setStudents(list);
         const init: Record<string, boolean> = {};
         list.forEach(s => { init[s.studentId] = true; });
