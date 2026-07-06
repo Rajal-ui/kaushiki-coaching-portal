@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { LogOut } from 'lucide-react';
@@ -11,8 +12,35 @@ const ROLE_DASHBOARDS: Record<string, string> = {
   FACULTY: '/dashboard/faculty',
 };
 
+const NAV_ITEMS = [
+  { label: 'Home', href: '/', sectionId: null },
+  { label: 'Programs', href: '#programs', sectionId: 'programs' },
+  { label: 'Contact', href: '#contact', sectionId: 'contact' },
+];
+
 export default function PublicHeader() {
   const { user, isAuthenticated, logout } = useAuth();
+  const [active, setActive] = useState('/');
+
+  const handleScroll = useCallback(() => {
+    const scrollY = window.scrollY + 120;
+    for (let i = NAV_ITEMS.length - 1; i >= 0; i--) {
+      const item = NAV_ITEMS[i];
+      if (!item.sectionId) {
+        if (scrollY < 300) { setActive('/'); return; }
+        continue;
+      }
+      const el = document.getElementById(item.sectionId);
+      if (el && el.offsetTop <= scrollY) { setActive(item.href); return; }
+    }
+    setActive('/');
+  }, []);
+
+  useEffect(() => {
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/80 backdrop-blur-md">
@@ -29,15 +57,23 @@ export default function PublicHeader() {
         </div>
 
         <nav className="hidden md:flex items-center gap-8 font-sans font-medium text-sm text-body">
-          <a href="/" className="text-primary hover:text-primary transition-colors border-b-2 border-primary pb-1 translate-y-[2px]">
-            Home
-          </a>
-          <a href="#programs" className="hover:text-primary transition-colors">
-            Programs
-          </a>
-          <a href="#contact" className="hover:text-primary transition-colors">
-            Contact
-          </a>
+          {NAV_ITEMS.map(item => {
+            const isActive = active === item.href;
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={() => setActive(item.href)}
+                className={`transition-colors border-b-2 pb-1 translate-y-[2px] ${
+                  isActive
+                    ? 'text-primary border-primary'
+                    : 'text-body border-transparent hover:text-primary'
+                }`}
+              >
+                {item.label}
+              </a>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-4">
