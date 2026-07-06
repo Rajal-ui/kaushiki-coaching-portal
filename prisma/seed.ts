@@ -15,63 +15,63 @@ async function main() {
   // ── USERS ─────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { phone: ADMIN_PHONE },
-    update: {},
+    update: { name: 'Rajesh Sharma', email: 'admin@kaushikiclasses.in', passwordHash: PASSWORD_HASH, role: 'ADMIN', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Rajesh Sharma', phone: ADMIN_PHONE, email: 'admin@kaushikiclasses.in', passwordHash: PASSWORD_HASH, role: 'ADMIN', status: 'ACTIVE', phoneVerified: true },
   });
   console.log('  Admin:', admin.id);
 
   const faculty1 = await prisma.user.upsert({
     where: { phone: '9876543210' },
-    update: {},
+    update: { name: 'Priya Kulkarni', email: 'priya.k@kaushikiclasses.in', passwordHash: PASSWORD_HASH, role: 'FACULTY', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Priya Kulkarni', phone: '9876543210', email: 'priya.k@kaushikiclasses.in', passwordHash: PASSWORD_HASH, role: 'FACULTY', status: 'ACTIVE', phoneVerified: true },
   });
   const faculty2 = await prisma.user.upsert({
     where: { phone: '9823456701' },
-    update: {},
+    update: { name: 'Amit Desai', email: 'amit.d@kaushikiclasses.in', passwordHash: PASSWORD_HASH, role: 'FACULTY', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Amit Desai', phone: '9823456701', email: 'amit.d@kaushikiclasses.in', passwordHash: PASSWORD_HASH, role: 'FACULTY', status: 'ACTIVE', phoneVerified: true },
   });
   const faculty3 = await prisma.user.upsert({
     where: { phone: '9712345678' },
-    update: {},
+    update: { name: 'Sunita Joshi', email: 'sunita.j@kaushikiclasses.in', passwordHash: PASSWORD_HASH, role: 'FACULTY', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Sunita Joshi', phone: '9712345678', email: 'sunita.j@kaushikiclasses.in', passwordHash: PASSWORD_HASH, role: 'FACULTY', status: 'ACTIVE', phoneVerified: true },
   });
 
   const student1 = await prisma.user.upsert({
     where: { phone: '9900112233' },
-    update: {},
+    update: { name: 'Arjun Patil', email: 'arjun.patil@gmail.com', passwordHash: PASSWORD_HASH, role: 'STUDENT', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Arjun Patil', phone: '9900112233', email: 'arjun.patil@gmail.com', passwordHash: PASSWORD_HASH, role: 'STUDENT', status: 'ACTIVE', phoneVerified: true },
   });
   const student2 = await prisma.user.upsert({
     where: { phone: '9900223344' },
-    update: {},
+    update: { name: 'Sneha Mehta', email: 'sneha.mehta@gmail.com', passwordHash: PASSWORD_HASH, role: 'STUDENT', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Sneha Mehta', phone: '9900223344', email: 'sneha.mehta@gmail.com', passwordHash: PASSWORD_HASH, role: 'STUDENT', status: 'ACTIVE', phoneVerified: true },
   });
   const student3 = await prisma.user.upsert({
     where: { phone: '9900334455' },
-    update: {},
+    update: { name: 'Rohan Kadam', email: 'rohan.kadam@gmail.com', passwordHash: PASSWORD_HASH, role: 'STUDENT', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Rohan Kadam', phone: '9900334455', email: 'rohan.kadam@gmail.com', passwordHash: PASSWORD_HASH, role: 'STUDENT', status: 'ACTIVE', phoneVerified: true },
   });
 
   const parent1 = await prisma.user.upsert({
     where: { phone: '9800112233' },
-    update: {},
+    update: { name: 'Suresh Patil', email: 'suresh.patil@gmail.com', passwordHash: PASSWORD_HASH, role: 'PARENT', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Suresh Patil', phone: '9800112233', email: 'suresh.patil@gmail.com', passwordHash: PASSWORD_HASH, role: 'PARENT', status: 'ACTIVE', phoneVerified: true },
   });
   const parent2 = await prisma.user.upsert({
     where: { phone: '9800223344' },
-    update: {},
+    update: { name: 'Anita Mehta', email: 'anita.mehta@gmail.com', passwordHash: PASSWORD_HASH, role: 'PARENT', status: 'ACTIVE', phoneVerified: true },
     create: { name: 'Anita Mehta', phone: '9800223344', email: 'anita.mehta@gmail.com', passwordHash: PASSWORD_HASH, role: 'PARENT', status: 'ACTIVE', phoneVerified: true },
   });
 
   // ── PARENT-STUDENT LINKS ───────────────────────────────
   await prisma.parentStudentLink.upsert({
     where: { parentId_studentId: { parentId: parent1.id, studentId: student1.id } },
-    update: {},
+    update: { status: 'APPROVED', approvedById: admin.id },
     create: { parentId: parent1.id, studentId: student1.id, status: 'APPROVED', approvedById: admin.id },
   });
   await prisma.parentStudentLink.upsert({
     where: { parentId_studentId: { parentId: parent2.id, studentId: student2.id } },
-    update: {},
+    update: { status: 'APPROVED', approvedById: admin.id },
     create: { parentId: parent2.id, studentId: student2.id, status: 'APPROVED', approvedById: admin.id },
   });
 
@@ -86,7 +86,7 @@ async function main() {
   for (const t of trackData) {
     tracks[t.name] = await prisma.track.upsert({
       where: { name: t.name },
-      update: {},
+      update: { boardCoverage: t.boardCoverage, displayOrder: t.displayOrder },
       create: { ...t },
     });
   }
@@ -110,7 +110,7 @@ async function main() {
     const trackId = tracks[s.trackName].id;
     const subject = await prisma.subject.upsert({
       where: { trackId_name: { trackId, name: s.name } },
-      update: {},
+      update: { trackId },
       create: { trackId, name: s.name },
     });
     subjects[`${s.trackName}_${s.name}`] = subject;
@@ -119,76 +119,76 @@ async function main() {
   // ── BATCHES ───────────────────────────────────────────
   const batch1 = await prisma.batch.upsert({
     where: { id: 'seed-batch-math-10' },
-    update: {},
+    update: { subjectId: subjects['CLASSES_6_10_Mathematics'].id, facultyId: faculty1.id, capacity: 15, seatsFilled: 3, schedule: 'Mon / Wed / Fri — 4:00 PM to 5:30 PM', status: 'ACTIVE' },
     create: { id: 'seed-batch-math-10', subjectId: subjects['CLASSES_6_10_Mathematics'].id, facultyId: faculty1.id, capacity: 15, seatsFilled: 3, schedule: 'Mon / Wed / Fri — 4:00 PM to 5:30 PM', status: 'ACTIVE' },
   });
   const batch2 = await prisma.batch.upsert({
     where: { id: 'seed-batch-science-9' },
-    update: {},
+    update: { subjectId: subjects['CLASSES_6_10_Science'].id, facultyId: faculty2.id, capacity: 12, seatsFilled: 2, schedule: 'Tue / Thu / Sat — 5:00 PM to 6:30 PM', status: 'ACTIVE' },
     create: { id: 'seed-batch-science-9', subjectId: subjects['CLASSES_6_10_Science'].id, facultyId: faculty2.id, capacity: 12, seatsFilled: 2, schedule: 'Tue / Thu / Sat — 5:00 PM to 6:30 PM', status: 'ACTIVE' },
   });
   const batch3 = await prisma.batch.upsert({
     where: { id: 'seed-batch-accountancy-11' },
-    update: {},
+    update: { subjectId: subjects['CLASSES_11_12_COMMERCE_Accountancy'].id, facultyId: faculty1.id, capacity: 10, seatsFilled: 2, schedule: 'Mon / Wed / Fri — 6:00 PM to 7:30 PM', status: 'ACTIVE' },
     create: { id: 'seed-batch-accountancy-11', subjectId: subjects['CLASSES_11_12_COMMERCE_Accountancy'].id, facultyId: faculty1.id, capacity: 10, seatsFilled: 2, schedule: 'Mon / Wed / Fri — 6:00 PM to 7:30 PM', status: 'ACTIVE' },
   });
   const batch4 = await prisma.batch.upsert({
     where: { id: 'seed-batch-ca-foundation' },
-    update: {},
+    update: { subjectId: subjects['CA_FOUNDATION_INTERMEDIATE_CA Foundation'].id, facultyId: faculty3.id, capacity: 8, seatsFilled: 1, schedule: 'Daily — 7:00 AM to 9:00 AM', status: 'ACTIVE' },
     create: { id: 'seed-batch-ca-foundation', subjectId: subjects['CA_FOUNDATION_INTERMEDIATE_CA Foundation'].id, facultyId: faculty3.id, capacity: 8, seatsFilled: 1, schedule: 'Daily — 7:00 AM to 9:00 AM', status: 'ACTIVE' },
   });
 
   // ── ENROLLMENTS ───────────────────────────────────────
   const enroll1 = await prisma.enrollment.upsert({
     where: { studentId_batchId: { studentId: student1.id, batchId: batch1.id } },
-    update: {},
+    update: { status: 'ACTIVE', enrolledAt: new Date('2026-06-01') },
     create: { studentId: student1.id, batchId: batch1.id, status: 'ACTIVE', enrolledAt: new Date('2026-06-01') },
   });
   const enroll2 = await prisma.enrollment.upsert({
     where: { studentId_batchId: { studentId: student1.id, batchId: batch2.id } },
-    update: {},
+    update: { status: 'ACTIVE', enrolledAt: new Date('2026-06-01') },
     create: { studentId: student1.id, batchId: batch2.id, status: 'ACTIVE', enrolledAt: new Date('2026-06-01') },
   });
   const enroll3 = await prisma.enrollment.upsert({
     where: { studentId_batchId: { studentId: student2.id, batchId: batch3.id } },
-    update: {},
+    update: { status: 'ACTIVE', enrolledAt: new Date('2026-06-10') },
     create: { studentId: student2.id, batchId: batch3.id, status: 'ACTIVE', enrolledAt: new Date('2026-06-10') },
   });
   const enroll4 = await prisma.enrollment.upsert({
     where: { studentId_batchId: { studentId: student3.id, batchId: batch4.id } },
-    update: {},
+    update: { status: 'ACTIVE', enrolledAt: new Date('2026-06-15') },
     create: { studentId: student3.id, batchId: batch4.id, status: 'ACTIVE', enrolledAt: new Date('2026-06-15') },
   });
   const enroll5 = await prisma.enrollment.upsert({
     where: { studentId_batchId: { studentId: student2.id, batchId: batch1.id } },
-    update: {},
+    update: { status: 'ACTIVE', enrolledAt: new Date('2026-06-12') },
     create: { studentId: student2.id, batchId: batch1.id, status: 'ACTIVE', enrolledAt: new Date('2026-06-12') },
   });
 
   // ── PAYMENTS ──────────────────────────────────────────
   await prisma.payment.upsert({
     where: { enrollmentId: enroll1.id },
-    update: {},
+    update: { payerId: parent1.id, amount: 450000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_001', gatewayOrderId: 'mock_order_001', status: 'SUCCEEDED', createdAt: new Date('2026-06-01') },
     create: { enrollmentId: enroll1.id, payerId: parent1.id, amount: 450000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_001', gatewayOrderId: 'mock_order_001', status: 'SUCCEEDED', createdAt: new Date('2026-06-01') },
   });
   await prisma.payment.upsert({
     where: { enrollmentId: enroll2.id },
-    update: {},
+    update: { payerId: parent1.id, amount: 420000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_002', gatewayOrderId: 'mock_order_002', status: 'SUCCEEDED', createdAt: new Date('2026-06-01') },
     create: { enrollmentId: enroll2.id, payerId: parent1.id, amount: 420000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_002', gatewayOrderId: 'mock_order_002', status: 'SUCCEEDED', createdAt: new Date('2026-06-01') },
   });
   await prisma.payment.upsert({
     where: { enrollmentId: enroll3.id },
-    update: {},
+    update: { payerId: student2.id, amount: 600000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_003', gatewayOrderId: 'mock_order_003', status: 'SUCCEEDED', createdAt: new Date('2026-06-10') },
     create: { enrollmentId: enroll3.id, payerId: student2.id, amount: 600000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_003', gatewayOrderId: 'mock_order_003', status: 'SUCCEEDED', createdAt: new Date('2026-06-10') },
   });
   await prisma.payment.upsert({
     where: { enrollmentId: enroll4.id },
-    update: {},
+    update: { payerId: student3.id, amount: 800000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_004', gatewayOrderId: 'mock_order_004', status: 'FAILED', failureReason: 'Card declined', createdAt: new Date('2026-06-15') },
     create: { enrollmentId: enroll4.id, payerId: student3.id, amount: 800000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_004', gatewayOrderId: 'mock_order_004', status: 'FAILED', failureReason: 'Card declined', createdAt: new Date('2026-06-15') },
   });
   await prisma.payment.upsert({
     where: { enrollmentId: enroll5.id },
-    update: {},
+    update: { payerId: parent2.id, amount: 450000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_005', gatewayOrderId: 'mock_order_005', status: 'SUCCEEDED', createdAt: new Date('2026-06-12') },
     create: { enrollmentId: enroll5.id, payerId: parent2.id, amount: 450000, currency: 'INR', gateway: 'razorpay', gatewayEventId: 'mock_evt_005', gatewayOrderId: 'mock_order_005', status: 'SUCCEEDED', createdAt: new Date('2026-06-12') },
   });
 
@@ -205,7 +205,7 @@ async function main() {
   for (const record of attendanceRecords) {
     await prisma.attendance.upsert({
       where: { batchId_studentId_sessionDate: { batchId: record.batchId, studentId: record.studentId, sessionDate: record.sessionDate } },
-      update: {},
+      update: { present: record.present, markedById: faculty1.id },
       create: { ...record, markedById: faculty1.id },
     });
   }
@@ -298,7 +298,7 @@ async function main() {
     { key: 'default_batch_capacity', value: '15' },
   ];
   for (const c of configs) {
-    await prisma.siteSetting.upsert({ where: { key: c.key }, update: {}, create: c });
+    await prisma.siteSetting.upsert({ where: { key: c.key }, update: { value: c.value }, create: c });
   }
 
   console.log('\n✅ Seed complete. Credentials: phone + password Kaushiki@123');
