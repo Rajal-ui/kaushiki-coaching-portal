@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeQuery } from '@/lib/hooks/useRealtimeQuery';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
@@ -19,6 +19,7 @@ interface Faculty {
 
 export default function NewBatchPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({ trackId: '', subjectId: '', facultyId: '', capacity: 30, schedule: '', status: 'ACTIVE' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,13 +57,15 @@ export default function NewBatchPage() {
           status: form.status,
         }),
       });
-      if (res.ok) router.push('/dashboard/admin/batches');
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ['admin-batches'] });
+        router.push('/dashboard/admin/batches');
+      }
     } catch { /* ignore */ }
     setSubmitting(false);
   }
 
   return (
-    <ProtectedRoute allowedRoles={['ADMIN']}>
       <div className="max-w-2xl mx-auto">
         <button onClick={() => router.back()} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6">
           <ArrowLeft className="w-4 h-4" /> Back
@@ -105,7 +108,6 @@ export default function NewBatchPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                 <option value="ACTIVE">Active</option>
-                <option value="UPCOMING">Upcoming</option>
               </select>
             </div>
             <div className="flex gap-3 pt-2">
@@ -118,6 +120,5 @@ export default function NewBatchPage() {
           </form>
         </div>
       </div>
-    </ProtectedRoute>
   );
 }
