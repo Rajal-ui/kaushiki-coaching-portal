@@ -138,6 +138,13 @@ async function main() {
     create: { id: 'seed-batch-ca-foundation', subjectId: subjects['CA_FOUNDATION_INTERMEDIATE_CA Foundation'].id, facultyId: faculty3.id, capacity: 8, seatsFilled: 1, schedule: 'Daily — 7:00 AM to 9:00 AM', status: 'ACTIVE' },
   });
 
+  const batches: Record<string, any> = {
+    'CLASSES_6_10_Mathematics': batch1,
+    'CLASSES_6_10_Science': batch2,
+    'CLASSES_11_12_COMMERCE_Accountancy': batch3,
+    'CA_FOUNDATION_INTERMEDIATE_CA Foundation': batch4,
+  };
+
   // ── ENROLLMENTS ───────────────────────────────────────
   const enroll1 = await prisma.enrollment.upsert({
     where: { studentId_batchId: { studentId: student1.id, batchId: batch1.id } },
@@ -193,8 +200,8 @@ async function main() {
   });
 
   // ── ATTENDANCE ────────────────────────────────────────
-  const attendanceDates = ['2026-06-02','2026-06-04','2026-06-06','2026-06-09','2026-06-11',
-    '2026-06-13','2026-06-16','2026-06-18','2026-06-20','2026-06-23'];
+  const attendanceDates = ['2026-06-02', '2026-06-04', '2026-06-06', '2026-06-09', '2026-06-11',
+    '2026-06-13', '2026-06-16', '2026-06-18', '2026-06-20', '2026-06-23'];
   const attendanceRecords = [
     ...attendanceDates.map((d, i) => ({ batchId: batch1.id, studentId: student1.id, sessionDate: new Date(d), present: i !== 3 && i !== 7 })),
     ...attendanceDates.map((d, i) => ({ batchId: batch2.id, studentId: student1.id, sessionDate: new Date(d), present: i !== 5 })),
@@ -225,7 +232,7 @@ async function main() {
     { batchId: batch4.id, studentId: student3.id, testName: 'Mock Test 2 — Law', score: 71, maxScore: 100, testDate: new Date('2026-06-20'), remark: 'Improvement seen' },
   ];
   for (const s of scoreData) {
-    await prisma.testScore.create({ data: s }).catch(() => {});
+    await prisma.testScore.create({ data: s }).catch(() => { });
   }
 
   // ── DOUBT QUERIES ─────────────────────────────────────
@@ -281,6 +288,22 @@ async function main() {
       { userId: admin.id, type: 'INQUIRY_RECEIVED', title: 'New Inquiry', message: 'Deepak Verma submitted an inquiry — Interested in CA Foundation preparation.', link: '/dashboard/admin/inquiries', isRead: false, createdAt: new Date('2026-06-25') },
     ],
   });
+
+  const sampleResources = [
+    { title: 'Algebra Fundamentals', description: 'Complete notes on quadratic equations and polynomials', type: 'NOTES' as const, trackName: 'CLASSES_6_10', batchKey: 'CLASSES_6_10_Mathematics' },
+    { title: 'Physics Formula Sheet', description: 'Key formulas for Mechanics and Thermodynamics', type: 'PRACTICE_PAPERS' as const, trackName: 'CLASSES_6_10', batchKey: 'CLASSES_6_10_Science' },
+    { title: 'Accountancy Practice Set', description: 'Journal entries and trial balance problems', type: 'PRACTICE_PAPERS' as const, trackName: 'CLASSES_11_12_COMMERCE', batchKey: 'CLASSES_11_12_COMMERCE_Accountancy' },
+  ];
+  for (const r of sampleResources) {
+    const resource = await prisma.resource.create({
+      data: {
+        title: r.title, description: r.description, fileUrl: '/uploads/sample.pdf', type: r.type,
+        uploadedById: admin.id,
+        tracks: { create: [{ trackId: tracks[r.trackName].id }] },
+        batches: { create: [{ batchId: batches[r.batchKey].id }] },
+      },
+    });
+  }
 
   // ── SITE SETTINGS / SYSTEM CONFIG ─────────────────────
   const configs = [
