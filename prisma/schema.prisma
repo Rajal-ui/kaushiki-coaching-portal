@@ -98,8 +98,10 @@ model User {
   smsLogs          SmsLog[]
   adminEnrollments Enrollment[]        @relation("AdminEnrollments")
   notifications    Notification[]
-  createdTests     Test[]              @relation("FacultyTests")
-  testAttempts     TestAttempt[]       @relation("StudentAttempts")
+  createdTests      Test[]                @relation("FacultyTests")
+  testAttempts      TestAttempt[]         @relation("StudentAttempts")
+  createdAssignments Assignment[]         @relation("FacultyAssignments")
+  assignmentSubmissions AssignmentSubmission[] @relation("StudentSubmissions")
 
   @@map("users")
 }
@@ -164,6 +166,7 @@ model Batch {
   testScores   TestScore[]
   classSessions ClassSession[]
   tests         Test[]
+  assignments   AssignmentBatch[]
 
   @@map("batches")
 }
@@ -330,6 +333,7 @@ enum NotificationType {
   ATTENDANCE_LOW
   INQUIRY_RECEIVED
   SYSTEM
+  FEEDBACK_PUBLISHED
 }
 
 model Notification {
@@ -460,4 +464,51 @@ model TestAnswer {
 
   @@unique([attemptId, questionId])
   @@map("test_answers")
+}
+
+model Assignment {
+  id           String         @id @default(cuid())
+  title        String
+  instructions String         // Rich-text / markdown instructions
+  dueDate      DateTime
+  facultyId    String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  faculty      User               @relation("FacultyAssignments", fields: [facultyId], references: [id])
+  batches      AssignmentBatch[]
+  submissions  AssignmentSubmission[]
+  resources    Json?              // Array of { name: string, url: string }
+
+  @@map("assignments")
+}
+
+model AssignmentBatch {
+  assignmentId String
+  batchId      String
+
+  assignment  Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  batch       Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@id([assignmentId, batchId])
+  @@map("assignment_batches")
+}
+
+model AssignmentSubmission {
+  id                String    @id @default(cuid())
+  assignmentId      String
+  studentId         String
+  submissionText    String?   // Rich-text student response
+  fileUrls          Json?     // Array of { name: string, url: string }
+  submittedAt       DateTime  @default(now())
+  grade             Int?      // Score
+  feedback          String?   // Markdown feedback
+  feedbackPublished Boolean   @default(false)
+  feedbackPublishedAt DateTime?
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  student    User       @relation("StudentSubmissions", fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@map("assignment_submissions")
 }

@@ -12,6 +12,7 @@ const typeLabels: Record<string, string> = {
   ATTENDANCE_LOW: 'Low Attendance',
   INQUIRY_RECEIVED: 'New Inquiry',
   SYSTEM: 'System Notification',
+  FEEDBACK_PUBLISHED: 'Feedback Published',
 };
 
 export async function createNotification(data: {
@@ -128,6 +129,24 @@ export async function createNotificationForDoubtSubmitted(doubtId: string) {
     type: 'DOUBT_SUBMITTED',
     message: `${doubt.student.name} submitted a doubt in ${doubt.batch.subject.name}.`,
     link: '/dashboard/faculty/doubts',
+  });
+}
+
+export async function createNotificationForFeedbackPublished(submissionId: string) {
+  const submission = await prisma.assignmentSubmission.findUnique({
+    where: { id: submissionId },
+    include: {
+      assignment: { select: { title: true } },
+      student: { select: { id: true, name: true } },
+    },
+  });
+  if (!submission || !submission.feedbackPublished) return;
+
+  return createNotification({
+    userId: submission.student.id,
+    type: 'FEEDBACK_PUBLISHED',
+    message: `Your feedback for "${submission.assignment.title}" has been published.`,
+    link: '/dashboard/student/assignments',
   });
 }
 
