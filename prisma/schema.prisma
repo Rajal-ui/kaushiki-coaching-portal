@@ -72,6 +72,13 @@ enum SmsStatus {
   FAILED
 }
 
+enum ResourceType {
+  NOTES
+  PRACTICE_PAPERS
+  REFERENCE_BOOKS
+  VIDEOS
+}
+
 model User {
   id            String        @id @default(cuid())
   name          String
@@ -102,6 +109,7 @@ model User {
   testAttempts      TestAttempt[]         @relation("StudentAttempts")
   createdAssignments Assignment[]         @relation("FacultyAssignments")
   assignmentSubmissions AssignmentSubmission[] @relation("StudentSubmissions")
+  resources        Resource[]           @relation("UploadedResources")
 
   @@map("users")
 }
@@ -129,7 +137,8 @@ model Track {
   displayOrder  Int
   createdAt     DateTime  @default(now())
 
-  subjects Subject[]
+  subjects  Subject[]
+  resources ResourceTrack[]
 
   @@map("tracks")
 }
@@ -167,6 +176,7 @@ model Batch {
   classSessions ClassSession[]
   tests         Test[]
   assignments   AssignmentBatch[]
+  resources     ResourceBatch[]
 
   @@map("batches")
 }
@@ -350,6 +360,45 @@ model Notification {
 
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+model Resource {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?
+  fileUrl      String
+  type         ResourceType
+  uploadedById String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  uploadedBy User             @relation("UploadedResources", fields: [uploadedById], references: [id])
+  tracks     ResourceTrack[]
+  batches    ResourceBatch[]
+
+  @@map("resources")
+}
+
+model ResourceTrack {
+  resourceId String
+  trackId    String
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  track    Track    @relation(fields: [trackId],    references: [id], onDelete: Cascade)
+
+  @@id([resourceId, trackId])
+  @@map("resource_tracks")
+}
+
+model ResourceBatch {
+  resourceId String
+  batchId    String
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  batch    Batch    @relation(fields: [batchId],    references: [id], onDelete: Cascade)
+
+  @@id([resourceId, batchId])
+  @@map("resource_batches")
 }
 
 model SmsLog {
