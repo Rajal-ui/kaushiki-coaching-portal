@@ -7,7 +7,7 @@ import { Loader2, ChevronLeft, FileText, Calendar, Clock, User, BookOpen, AlertC
 interface Submission {
   id: string;
   submissionText?: string | null;
-  fileUrls?: { name: string; url: string }[] | null;
+  fileUrls?: string[] | null;
   submittedAt: string;
   grade?: number | null;
   feedback?: string | null;
@@ -142,10 +142,10 @@ export default function FacultyGradingPage({ params }: { params: Promise<{ assig
 
                 {sub.fileUrls && sub.fileUrls.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {sub.fileUrls.map((f, i) => (
-                      <a key={i} href={f.url} target="_blank" rel="noopener noreferrer"
+                    {sub.fileUrls.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">
-                        <Download className="w-3.5 h-3.5" /> {f.name}
+                        <Download className="w-3.5 h-3.5" /> {url.split('/').pop()}
                       </a>
                     ))}
                   </div>

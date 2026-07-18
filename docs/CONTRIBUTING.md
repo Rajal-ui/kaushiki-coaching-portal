@@ -257,29 +257,6 @@ All passwords: **`Kaushiki@123`**
 7. **Inquiry pipeline**: All 5 statuses represented (NEW, CONTACTED, ENROLLED, CLOSED).
 8. **Batch fill rates**: All 4 batches are well under capacity — good for testing enrollment flow.
 
-### Working with the Seed
-
-To verify seed data works end-to-end through the API:
-
-```bash
-# Start the dev server
-npm run dev
-
-# Test admin stats (replace token with an actual JWT from login)
-curl http://localhost:3000/api/admin/stats -H "Authorization: Bearer <token>"
-# → { activeStudents: 3, openInquiries: 2, monthlyRevenue: 0, batchesNearCapacity: 0 }
-
-# Test student enrollment
-curl http://localhost:3000/api/enrollments/me -H "Authorization: Bearer <student-token>"
-
-# Test parent links
-curl http://localhost:3000/api/links -H "Authorization: Bearer <parent-token>"
-
-# Test health endpoint (no auth needed)
-curl http://localhost:3000/api/health
-# → { status: "healthy", checks: { database: "ok", redis: "ok" } }
-```
-
 ---
 
 ## 5. API Endpoints Reference
@@ -636,6 +613,51 @@ Attach visual proof of the changes.
 
 ---
 
+### Working with the Seed
+
+To verify seed data works end-to-end through the API:
+
+```bash
+# Start the dev server
+npm run dev
+
+# Test admin stats (replace token with an actual JWT from login)
+curl http://localhost:3000/api/admin/stats -H "Authorization: Bearer <token>"
+# → { activeStudents: 3, openInquiries: 2, monthlyRevenue: 0, batchesNearCapacity: 0 }
+
+# Test student enrollment
+curl http://localhost:3000/api/enrollments/me -H "Authorization: Bearer <student-token>"
+
+# Test parent links
+curl http://localhost:3000/api/links -H "Authorization: Bearer <parent-token>"
+
+# Test health endpoint (no auth needed)
+curl http://localhost:3000/api/health
+# → { status: "healthy", checks: { database: "ok", redis: "ok" } }
+```
+
+---
+
+### Database Migrations & Updates
+
+Whenever you pull changes that include model modifications or make updates to the `prisma/schema.prisma` file yourself, use the following commands to keep your local environment in sync:
+
+
+Generate and apply a new migration after schema changes
+```bash
+npx prisma migrate dev --name <migration_name>
+```
+Sync your local database with the current schema without creating a migration file (Prototyping)
+```
+npx prisma db push
+```
+Regenerate the Prisma Client (run automatically by migrate dev, but useful if types aren't updating)
+```
+npx prisma generate
+```
+
+---
+
 ## 9. Testing & Verification
 
 ### Pre-Commit Hook (enforced)
@@ -747,6 +769,7 @@ npm run build
 ```
 
 ---
+
 
 ## 10. Future Roadmap
 

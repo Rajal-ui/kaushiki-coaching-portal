@@ -86,6 +86,13 @@ enum SmsStatus {
   FAILED
 }
 
+enum ResourceType {
+  NOTES
+  PRACTICE_PAPERS
+  REFERENCE_BOOKS
+  VIDEOS
+}
+
 model User {
   id            String        @id @default(cuid())
   name          String
@@ -98,27 +105,28 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  parentLinks      ParentStudentLink[] @relation("ParentLinks")
-  studentLinks     ParentStudentLink[] @relation("StudentLinks")
-  approvedLinks    ParentStudentLink[] @relation("ApprovedLinks")
-  assignedBatches  Batch[]             @relation("FacultyBatches")
-  enrollments      Enrollment[]        @relation("StudentEnrollments")
-  payments         Payment[]           @relation("PayerPayments")
-  doubtQueries     DoubtQuery[]        @relation("StudentQueries")
-  doubtResponses   DoubtQuery[]        @relation("FacultyResponses")
-  attendance       Attendance[]
-  testScores       TestScore[]
-  assignedInquiries Inquiry[]           @relation("AssignedInquiries")
-  smsLogs          SmsLog[]
-  adminEnrollments Enrollment[]        @relation("AdminEnrollments")
-  notifications    Notification[]
-  createdTests      Test[]                @relation("FacultyTests")
-  testAttempts      TestAttempt[]         @relation("StudentAttempts")
-  createdAssignments Assignment[]         @relation("FacultyAssignments")
-  assignmentSubmissions AssignmentSubmission[] @relation("StudentSubmissions")
-  liveSessions       LiveSession[]         @relation("FacultyLiveSessions")
-  recordings         Recording[]            @relation("FacultyRecordings")
-  liveAttendance     LiveSessionAttendance[]
+  parentLinks           ParentStudentLink[]     @relation("ParentLinks")
+  studentLinks          ParentStudentLink[]     @relation("StudentLinks")
+  approvedLinks         ParentStudentLink[]     @relation("ApprovedLinks")
+  assignedBatches       Batch[]                 @relation("FacultyBatches")
+  enrollments           Enrollment[]            @relation("StudentEnrollments")
+  payments              Payment[]               @relation("PayerPayments")
+  doubtQueries          DoubtQuery[]            @relation("StudentQueries")
+  doubtResponses        DoubtQuery[]            @relation("FacultyResponses")
+  attendance            Attendance[]
+  testScores            TestScore[]
+  assignedInquiries     Inquiry[]               @relation("AssignedInquiries")
+  smsLogs               SmsLog[]
+  adminEnrollments      Enrollment[]            @relation("AdminEnrollments")
+  notifications         Notification[]
+  createdTests          Test[]                  @relation("FacultyTests")
+  testAttempts          TestAttempt[]           @relation("StudentAttempts")
+  createdAssignments    Assignment[]            @relation("FacultyAssignments")
+  assignmentSubmissions AssignmentSubmission[]  @relation("StudentSubmissions")
+  liveSessions          LiveSession[]           @relation("FacultyLiveSessions")
+  recordings            Recording[]             @relation("FacultyRecordings")
+  liveAttendance        LiveSessionAttendance[]
+  resources             Resource[]              @relation("UploadedResources")
 
   @@map("users")
 }
@@ -131,8 +139,8 @@ model ParentStudentLink {
   approvedById String?
   createdAt    DateTime   @default(now())
 
-  parent     User  @relation("ParentLinks",   fields: [parentId],     references: [id])
-  student    User  @relation("StudentLinks",  fields: [studentId],    references: [id])
+  parent     User  @relation("ParentLinks", fields: [parentId], references: [id])
+  student    User  @relation("StudentLinks", fields: [studentId], references: [id])
   approvedBy User? @relation("ApprovedLinks", fields: [approvedById], references: [id])
 
   @@unique([parentId, studentId])
@@ -146,7 +154,8 @@ model Track {
   displayOrder  Int
   createdAt     DateTime  @default(now())
 
-  subjects Subject[]
+  subjects  Subject[]
+  resources ResourceTrack[]
 
   @@map("tracks")
 }
@@ -175,17 +184,18 @@ model Batch {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  subject      Subject      @relation(fields: [subjectId],  references: [id])
-  faculty      User         @relation("FacultyBatches", fields: [facultyId], references: [id])
-  enrollments  Enrollment[]
-  doubtQueries DoubtQuery[]
-  attendance   Attendance[]
-  testScores   TestScore[]
+  subject       Subject           @relation(fields: [subjectId], references: [id])
+  faculty       User              @relation("FacultyBatches", fields: [facultyId], references: [id])
+  enrollments   Enrollment[]
+  doubtQueries  DoubtQuery[]
+  attendance    Attendance[]
+  testScores    TestScore[]
   classSessions ClassSession[]
   tests         Test[]
   assignments   AssignmentBatch[]
   liveSessions  LiveSession[]
   recordings    Recording[]
+  resources     ResourceBatch[]
 
   @@map("batches")
 }
@@ -200,10 +210,10 @@ model Enrollment {
   enrolledAt   DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  student    User     @relation("StudentEnrollments", fields: [studentId],    references: [id])
-  batch      Batch    @relation(fields: [batchId],    references: [id])
-  inquiry    Inquiry? @relation(fields: [inquiryId],  references: [id])
-  enrolledBy User?    @relation("AdminEnrollments",   fields: [enrolledById], references: [id])
+  student    User     @relation("StudentEnrollments", fields: [studentId], references: [id])
+  batch      Batch    @relation(fields: [batchId], references: [id])
+  inquiry    Inquiry? @relation(fields: [inquiryId], references: [id])
+  enrolledBy User?    @relation("AdminEnrollments", fields: [enrolledById], references: [id])
   payment    Payment?
 
   @@unique([studentId, batchId])
@@ -225,7 +235,7 @@ model Payment {
   updatedAt      DateTime      @updatedAt
 
   enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
-  payer      User       @relation("PayerPayments",  fields: [payerId],       references: [id])
+  payer      User       @relation("PayerPayments", fields: [payerId], references: [id])
 
   @@map("payments")
 }
@@ -260,9 +270,9 @@ model DoubtQuery {
   respondedAt   DateTime?
   createdAt     DateTime    @default(now())
 
-  student     User   @relation("StudentQueries",  fields: [studentId],     references: [id])
-  batch       Batch  @relation(fields: [batchId],                          references: [id])
-  respondedBy User?  @relation("FacultyResponses", fields: [respondedById], references: [id])
+  student     User  @relation("StudentQueries", fields: [studentId], references: [id])
+  batch       Batch @relation(fields: [batchId], references: [id])
+  respondedBy User? @relation("FacultyResponses", fields: [respondedById], references: [id])
 
   @@map("doubt_queries")
 }
@@ -275,7 +285,7 @@ model Attendance {
   present     Boolean  @default(false)
   markedById  String?
 
-  batch   Batch @relation(fields: [batchId],   references: [id])
+  batch   Batch @relation(fields: [batchId], references: [id])
   student User  @relation(fields: [studentId], references: [id])
 
   @@unique([batchId, studentId, sessionDate])
@@ -294,7 +304,7 @@ model TestScore {
   remark    String?
   enteredAt DateTime @default(now())
 
-  batch   Batch @relation(fields: [batchId],   references: [id])
+  batch   Batch @relation(fields: [batchId], references: [id])
   student User  @relation(fields: [studentId], references: [id])
 
   @@index([batchId])
@@ -326,28 +336,28 @@ model ClassSession {
 }
 
 model LiveSession {
-  id                String            @id @default(cuid())
-  batchId           String
-  facultyId         String
-  title             String?
-  description       String?
-  platform          MeetingPlatform
-  meetingUrl        String
-  meetingId         String?
-  passcode          String?
-  scheduledStart    DateTime
-  scheduledEnd      DateTime
-  actualStart       DateTime?
-  actualEnd         DateTime?
-  status            LiveSessionStatus @default(SCHEDULED)
-  isRecurring       Boolean           @default(false)
-  recurringPattern  Json?             // e.g. { frequency: "weekly", interval: 1, daysOfWeek: [1,3,5], endDate: "..." }
-  providerMetadata  Json?             // Raw provider response (zoom meeting data etc.)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id               String            @id @default(cuid())
+  batchId          String
+  facultyId        String
+  title            String?
+  description      String?
+  platform         MeetingPlatform
+  meetingUrl       String
+  meetingId        String?
+  passcode         String?
+  scheduledStart   DateTime
+  scheduledEnd     DateTime
+  actualStart      DateTime?
+  actualEnd        DateTime?
+  status           LiveSessionStatus @default(SCHEDULED)
+  isRecurring      Boolean           @default(false)
+  recurringPattern Json? // e.g. { frequency: "weekly", interval: 1, daysOfWeek: [1,3,5], endDate: "..." }
+  providerMetadata Json? // Raw provider response (zoom meeting data etc.)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  batch      Batch                    @relation(fields: [batchId],   references: [id])
-  faculty    User                     @relation("FacultyLiveSessions", fields: [facultyId], references: [id])
+  batch      Batch                   @relation(fields: [batchId], references: [id])
+  faculty    User                    @relation("FacultyLiveSessions", fields: [facultyId], references: [id])
   attendance LiveSessionAttendance[]
   recordings Recording[]
 
@@ -358,13 +368,13 @@ model LiveSession {
 }
 
 model LiveSessionAttendance {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   sessionId String
   studentId String
-  joinedAt  DateTime @default(now())
+  joinedAt  DateTime  @default(now())
   leftAt    DateTime?
-  duration  Int?     // Duration in seconds
-  source    String?  // "click" | "webhook"
+  duration  Int? // Duration in seconds
+  source    String? // "click" | "webhook"
   metadata  Json?
 
   session LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -383,7 +393,7 @@ model Recording {
   description String?
   url         String
   password    String?
-  duration    Int?            // Duration in seconds
+  duration    Int? // Duration in seconds
   thumbnail   String?
   platform    MeetingPlatform
   published   Boolean         @default(true)
@@ -391,8 +401,8 @@ model Recording {
   createdAt   DateTime        @default(now())
 
   session LiveSession? @relation(fields: [sessionId], references: [id])
-  batch    Batch        @relation(fields: [batchId],   references: [id])
-  faculty  User         @relation("FacultyRecordings", fields: [facultyId], references: [id])
+  batch   Batch        @relation(fields: [batchId], references: [id])
+  faculty User         @relation("FacultyRecordings", fields: [facultyId], references: [id])
 
   @@index([batchId, published])
   @@map("recordings")
@@ -407,8 +417,8 @@ model SystemConfig {
 }
 
 model SiteSetting {
-  key     String   @id
-  value   String
+  key       String   @id
+  value     String
   updatedAt DateTime @updatedAt
 
   @@map("site_settings")
@@ -445,6 +455,45 @@ model Notification {
 
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+model Resource {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?
+  fileUrl      String
+  type         ResourceType
+  uploadedById String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  uploadedBy User            @relation("UploadedResources", fields: [uploadedById], references: [id])
+  tracks     ResourceTrack[]
+  batches    ResourceBatch[]
+
+  @@map("resources")
+}
+
+model ResourceTrack {
+  resourceId String
+  trackId    String
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  track    Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@id([resourceId, trackId])
+  @@map("resource_tracks")
+}
+
+model ResourceBatch {
+  resourceId String
+  batchId    String
+
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  batch    Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@id([resourceId, batchId])
+  @@map("resource_batches")
 }
 
 model SmsLog {
@@ -485,21 +534,21 @@ enum AttemptStatus {
 }
 
 model Test {
-  id          String      @id @default(cuid())
+  id          String     @id @default(cuid())
   title       String
   description String?
-  timeLimit   Int         // in minutes
+  timeLimit   Int // in minutes
   totalMarks  Int
   batchId     String
   facultyId   String
-  status      TestStatus  @default(DRAFT)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  status      TestStatus @default(DRAFT)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  batch       Batch       @relation(fields: [batchId], references: [id])
-  faculty     User        @relation("FacultyTests", fields: [facultyId], references: [id])
-  questions   Question[]
-  attempts    TestAttempt[]
+  batch     Batch         @relation(fields: [batchId], references: [id])
+  faculty   User          @relation("FacultyTests", fields: [facultyId], references: [id])
+  questions Question[]
+  attempts  TestAttempt[]
 
   @@map("tests")
 }
@@ -509,15 +558,15 @@ model Question {
   testId        String
   type          QuestionType
   questionText  String
-  options       Json?        // For MCQ: e.g. ["Option A", "Option B", ...]
-  correctOption String?      // For MCQ: correct option index or value
+  options       Json? // For MCQ: e.g. ["Option A", "Option B", ...]
+  correctOption String? // For MCQ: correct option index or value
   marks         Int
   displayOrder  Int
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  test          Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
-  answers       TestAnswer[]
+  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers TestAnswer[]
 
   @@map("questions")
 }
@@ -529,51 +578,51 @@ model TestAttempt {
   startTime DateTime      @default(now())
   endTime   DateTime?
   status    AttemptStatus @default(STARTED)
-  score     Int?          // Total graded score
-  feedback  String?       // Faculty global feedback
+  score     Int? // Total graded score
+  feedback  String? // Faculty global feedback
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  test      Test          @relation(fields: [testId], references: [id], onDelete: Cascade)
-  student   User          @relation("StudentAttempts", fields: [studentId], references: [id])
-  answers   TestAnswer[]
+  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student User         @relation("StudentAttempts", fields: [studentId], references: [id])
+  answers TestAnswer[]
 
   @@map("test_attempts")
 }
 
 model TestAnswer {
-  id               String      @id @default(cuid())
+  id               String    @id @default(cuid())
   attemptId        String
   questionId       String
-  selectedOption   String?     // For MCQ
-  subjectiveAnswer String?     // For Subjective
-  marksObtained    Int?        // Null if subjective and not graded
-  isGraded         Boolean     @default(false)
-  feedback         String?     // Faculty question-level feedback
+  selectedOption   String? // For MCQ
+  subjectiveAnswer String? // For Subjective
+  marksObtained    Int? // Null if subjective and not graded
+  isGraded         Boolean   @default(false)
+  feedback         String? // Faculty question-level feedback
   gradedAt         DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  attempt          TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question         Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attempt  TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
   @@map("test_answers")
 }
 
 model Assignment {
-  id           String         @id @default(cuid())
+  id           String   @id @default(cuid())
   title        String
-  instructions String         // Rich-text / markdown instructions
+  instructions String // Rich-text / markdown instructions
   dueDate      DateTime
   facultyId    String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  faculty      User               @relation("FacultyAssignments", fields: [facultyId], references: [id])
-  batches      AssignmentBatch[]
-  submissions  AssignmentSubmission[]
-  resources    Json?              // Array of { name: string, url: string }
+  faculty     User                   @relation("FacultyAssignments", fields: [facultyId], references: [id])
+  batches     AssignmentBatch[]
+  submissions AssignmentSubmission[]
+  resources   Json? // Array of { name: string, url: string }
 
   @@map("assignments")
 }
@@ -582,23 +631,23 @@ model AssignmentBatch {
   assignmentId String
   batchId      String
 
-  assignment  Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  batch       Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  batch      Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
 
   @@id([assignmentId, batchId])
   @@map("assignment_batches")
 }
 
 model AssignmentSubmission {
-  id                String    @id @default(cuid())
-  assignmentId      String
-  studentId         String
-  submissionText    String?   // Rich-text student response
-  fileUrls          Json?     // Array of { name: string, url: string }
-  submittedAt       DateTime  @default(now())
-  grade             Int?      // Score
-  feedback          String?   // Markdown feedback
-  feedbackPublished Boolean   @default(false)
+  id                  String    @id @default(cuid())
+  assignmentId        String
+  studentId           String
+  submissionText      String? // Rich-text student response
+  fileUrls            String[]
+  submittedAt         DateTime  @default(now())
+  grade               Int? // Score
+  feedback            String? // Markdown feedback
+  feedbackPublished   Boolean   @default(false)
   feedbackPublishedAt DateTime?
 
   assignment Assignment @relation(fields: [assignmentId], references: [id])

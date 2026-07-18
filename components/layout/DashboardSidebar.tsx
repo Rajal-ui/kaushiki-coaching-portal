@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, GraduationCap, ClipboardList, CalendarCheck,
   FileText, Settings, MessageSquare, PhoneCall, LogOut, ChevronLeft,
-  BarChart3, BookOpen, StickyNote, Video, Monitor
+  BarChart3, BookOpen, StickyNote, Video, Library
 } from 'lucide-react';
 
 interface NavItem {
@@ -22,6 +22,7 @@ const STUDENT_NAV: NavItem[] = [
   { label: 'Test Scores', href: '/dashboard/student/scores', icon: <BarChart3 className="w-4 h-4" /> },
   { label: 'Attendance', href: '/dashboard/student/attendance', icon: <CalendarCheck className="w-4 h-4" /> },
   { label: 'Assignments', href: '/dashboard/student/assignments', icon: <StickyNote className="w-4 h-4" /> },
+  { label: 'Resource Library', href: '/dashboard/student/resources', icon: <Library className="w-4 h-4" /> },
   { label: 'Doubt Queries', href: '/dashboard/student/doubts', icon: <MessageSquare className="w-4 h-4" /> },
   { label: 'Fees & Payments', href: '/dashboard/student/fees', icon: <FileText className="w-4 h-4" /> },
 ];
@@ -36,6 +37,7 @@ const FACULTY_NAV: NavItem[] = [
   { label: 'Live Classes', href: '/dashboard/faculty/live-sessions', icon: <Video className="w-4 h-4" /> },
   { label: 'Test Manager', href: '/dashboard/faculty/tests', icon: <ClipboardList className="w-4 h-4" /> },
   { label: 'Assignments', href: '/dashboard/faculty/assignments', icon: <StickyNote className="w-4 h-4" /> },
+  { label: 'Resources', href: '/dashboard/faculty/resources', icon: <Library className="w-4 h-4" /> },
   { label: 'Doubt Inbox', href: '/dashboard/faculty/doubts', icon: <MessageSquare className="w-4 h-4" /> },
 ];
 
