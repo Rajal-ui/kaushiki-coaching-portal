@@ -17,6 +17,7 @@ interface NavItem {
 const STUDENT_NAV: NavItem[] = [
   { label: 'Overview', href: '/dashboard/student', icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: 'My Batches', href: '/dashboard/student/batches', icon: <BookOpen className="w-4 h-4" /> },
+  { label: 'Tests & Quizzes', href: '/dashboard/student/tests', icon: <ClipboardList className="w-4 h-4" /> },
   { label: 'Test Scores', href: '/dashboard/student/scores', icon: <BarChart3 className="w-4 h-4" /> },
   { label: 'Attendance', href: '/dashboard/student/attendance', icon: <CalendarCheck className="w-4 h-4" /> },
   { label: 'Resource Library', href: '/dashboard/student/resources', icon: <Library className="w-4 h-4" /> },
@@ -31,6 +32,7 @@ const PARENT_NAV: NavItem[] = [
 const FACULTY_NAV: NavItem[] = [
   { label: 'Overview', href: '/dashboard/faculty', icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: 'My Batches', href: '/dashboard/faculty/batches', icon: <BookOpen className="w-4 h-4" /> },
+  { label: 'Test Manager', href: '/dashboard/faculty/tests', icon: <ClipboardList className="w-4 h-4" /> },
   { label: 'Resources', href: '/dashboard/faculty/resources', icon: <Library className="w-4 h-4" /> },
   { label: 'Doubt Inbox', href: '/dashboard/faculty/doubts', icon: <MessageSquare className="w-4 h-4" /> },
 ];

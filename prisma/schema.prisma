@@ -105,6 +105,8 @@ model User {
   smsLogs          SmsLog[]
   adminEnrollments Enrollment[]        @relation("AdminEnrollments")
   notifications    Notification[]
+  createdTests     Test[]              @relation("FacultyTests")
+  testAttempts     TestAttempt[]       @relation("StudentAttempts")
   resources        Resource[]           @relation("UploadedResources")
 
   @@map("users")
@@ -170,6 +172,7 @@ model Batch {
   attendance   Attendance[]
   testScores   TestScore[]
   classSessions ClassSession[]
+  tests         Test[]
   resources     ResourceBatch[]
 
   @@map("batches")
@@ -412,4 +415,98 @@ model SmsLog {
   @@index([status])
   @@index([userId])
   @@map("sms_logs")
+}
+
+enum TestStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionType {
+  MCQ
+  SUBJECTIVE
+}
+
+enum AttemptStatus {
+  STARTED
+  COMPLETED
+  TIMEOUT
+}
+
+model Test {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  timeLimit   Int         // in minutes
+  totalMarks  Int
+  batchId     String
+  facultyId   String
+  status      TestStatus  @default(DRAFT)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  batch       Batch       @relation(fields: [batchId], references: [id])
+  faculty     User        @relation("FacultyTests", fields: [facultyId], references: [id])
+  questions   Question[]
+  attempts    TestAttempt[]
+
+  @@map("tests")
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  testId        String
+  type          QuestionType
+  questionText  String
+  options       Json?        // For MCQ: e.g. ["Option A", "Option B", ...]
+  correctOption String?      // For MCQ: correct option index or value
+  marks         Int
+  displayOrder  Int
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  test          Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers       TestAnswer[]
+
+  @@map("questions")
+}
+
+model TestAttempt {
+  id        String        @id @default(cuid())
+  testId    String
+  studentId String
+  startTime DateTime      @default(now())
+  endTime   DateTime?
+  status    AttemptStatus @default(STARTED)
+  score     Int?          // Total graded score
+  feedback  String?       // Faculty global feedback
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  test      Test          @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student   User          @relation("StudentAttempts", fields: [studentId], references: [id])
+  answers   TestAnswer[]
+
+  @@map("test_attempts")
+}
+
+model TestAnswer {
+  id               String      @id @default(cuid())
+  attemptId        String
+  questionId       String
+  selectedOption   String?     // For MCQ
+  subjectiveAnswer String?     // For Subjective
+  marksObtained    Int?        // Null if subjective and not graded
+  isGraded         Boolean     @default(false)
+  feedback         String?     // Faculty question-level feedback
+  gradedAt         DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  attempt          TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@map("test_answers")
 }
