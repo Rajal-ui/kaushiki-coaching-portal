@@ -105,6 +105,7 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+<<<<<<< HEAD
   parentLinks           ParentStudentLink[]     @relation("ParentLinks")
   studentLinks          ParentStudentLink[]     @relation("StudentLinks")
   approvedLinks         ParentStudentLink[]     @relation("ApprovedLinks")
@@ -127,6 +128,27 @@ model User {
   recordings            Recording[]             @relation("FacultyRecordings")
   liveAttendance        LiveSessionAttendance[]
   resources             Resource[]              @relation("UploadedResources")
+=======
+  parentLinks      ParentStudentLink[] @relation("ParentLinks")
+  studentLinks     ParentStudentLink[] @relation("StudentLinks")
+  approvedLinks    ParentStudentLink[] @relation("ApprovedLinks")
+  assignedBatches  Batch[]             @relation("FacultyBatches")
+  enrollments      Enrollment[]        @relation("StudentEnrollments")
+  payments         Payment[]           @relation("PayerPayments")
+  doubtQueries     DoubtQuery[]        @relation("StudentQueries")
+  doubtResponses   DoubtQuery[]        @relation("FacultyResponses")
+  attendance       Attendance[]
+  testScores       TestScore[]
+  assignedInquiries Inquiry[]           @relation("AssignedInquiries")
+  smsLogs          SmsLog[]
+  adminEnrollments Enrollment[]        @relation("AdminEnrollments")
+  notifications    Notification[]
+  createdTests      Test[]                @relation("FacultyTests")
+  testAttempts      TestAttempt[]         @relation("StudentAttempts")
+  createdAssignments Assignment[]         @relation("FacultyAssignments")
+  assignmentSubmissions AssignmentSubmission[] @relation("StudentSubmissions")
+  resources        Resource[]           @relation("UploadedResources")
+>>>>>>> 03ebc7db29521bb2033f3ce82220fd282c9e361a
 
   @@map("users")
 }
@@ -193,8 +215,11 @@ model Batch {
   classSessions ClassSession[]
   tests         Test[]
   assignments   AssignmentBatch[]
+<<<<<<< HEAD
   liveSessions  LiveSession[]
   recordings    Recording[]
+=======
+>>>>>>> 03ebc7db29521bb2033f3ce82220fd282c9e361a
   resources     ResourceBatch[]
 
   @@map("batches")
