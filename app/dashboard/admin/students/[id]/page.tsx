@@ -139,7 +139,7 @@ export default function AdminStudentProfilePage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-6">
           <div className="flex items-center gap-6">
             <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
-              {student.name.charAt(0).toUpperCase()}
+              {student.name?.charAt(0)?.toUpperCase() ?? '?'}
             </div>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
