@@ -13,6 +13,9 @@ const typeLabels: Record<string, string> = {
   INQUIRY_RECEIVED: 'New Inquiry',
   SYSTEM: 'System Notification',
   FEEDBACK_PUBLISHED: 'Feedback Published',
+  LIVE_SESSION_REMINDER: 'Live Class Reminder',
+  LIVE_SESSION_CANCELLED: 'Class Cancelled',
+  RECORDING_PUBLISHED: 'Recording Published',
 };
 
 export async function createNotification(data: {
@@ -148,6 +151,96 @@ export async function createNotificationForFeedbackPublished(submissionId: strin
     message: `Your feedback for "${submission.assignment.title}" has been published.`,
     link: '/dashboard/student/assignments',
   });
+}
+
+export async function createNotificationForLiveSession(sessionId: string) {
+  const session = await prisma.liveSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      batch: {
+        select: {
+          id: true,
+          subject: { select: { name: true } },
+          enrollments: { select: { studentId: true } },
+        },
+      },
+    },
+  });
+  if (!session) return;
+
+  const studentIds = session.batch.enrollments.map(e => e.studentId);
+  const batchName = session.batch.subject.name;
+  const sessionTitle = session.title || batchName;
+  const formattedStart = session.scheduledStart.toLocaleString();
+
+  const notifications = studentIds.map(studentId =>
+    createNotification({
+      userId: studentId,
+      type: 'LIVE_SESSION_REMINDER',
+      message: `"${sessionTitle}" starts at ${formattedStart}. Join now!`,
+      link: `/dashboard/student/live-sessions/${session.id}`,
+    })
+  );
+
+  await Promise.all(notifications);
+}
+
+export async function createNotificationForSessionCancelled(sessionId: string) {
+  const session = await prisma.liveSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      batch: {
+        select: {
+          subject: { select: { name: true } },
+          enrollments: { select: { studentId: true } },
+        },
+      },
+    },
+  });
+  if (!session) return;
+
+  const studentIds = session.batch.enrollments.map(e => e.studentId);
+  const sessionTitle = session.title || session.batch.subject.name;
+
+  const notifications = studentIds.map(studentId =>
+    createNotification({
+      userId: studentId,
+      type: 'LIVE_SESSION_CANCELLED',
+      message: `"${sessionTitle}" has been cancelled.`,
+      link: '/dashboard/student/live-sessions',
+    })
+  );
+
+  await Promise.all(notifications);
+}
+
+export async function createNotificationForRecordingPublished(recordingId: string) {
+  const recording = await prisma.recording.findUnique({
+    where: { id: recordingId },
+    include: {
+      batch: {
+        select: {
+          subject: { select: { name: true } },
+          enrollments: { select: { studentId: true } },
+        },
+      },
+    },
+  });
+  if (!recording) return;
+
+  const studentIds = recording.batch.enrollments.map(e => e.studentId);
+  const batchName = recording.batch.subject.name;
+
+  const notifications = studentIds.map(studentId =>
+    createNotification({
+      userId: studentId,
+      type: 'RECORDING_PUBLISHED',
+      message: `New recording "${recording.title}" available for ${batchName}.`,
+      link: `/dashboard/student/batches/${recording.batchId}`,
+    })
+  );
+
+  await Promise.all(notifications);
 }
 
 export async function createNotificationForLinkApproved(linkId: string, status: string) {
