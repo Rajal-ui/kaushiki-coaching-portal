@@ -578,33 +578,33 @@ model TestAttempt {
   startTime DateTime      @default(now())
   endTime   DateTime?
   status    AttemptStatus @default(STARTED)
-  score     Int? // Total graded score
-  feedback  String? // Faculty global feedback
+  score     Int?          // Total graded score
+  feedback  String?       // Faculty global feedback
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
-  student User         @relation("StudentAttempts", fields: [studentId], references: [id])
-  answers TestAnswer[]
+  test      Test          @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student   User          @relation("StudentAttempts", fields: [studentId], references: [id])
+  answers   TestAnswer[]
 
   @@map("test_attempts")
 }
 
 model TestAnswer {
-  id               String    @id @default(cuid())
+  id               String      @id @default(cuid())
   attemptId        String
   questionId       String
-  selectedOption   String? // For MCQ
-  subjectiveAnswer String? // For Subjective
-  marksObtained    Int? // Null if subjective and not graded
-  isGraded         Boolean   @default(false)
-  feedback         String? // Faculty question-level feedback
+  selectedOption   String?     // For MCQ
+  subjectiveAnswer String?     // For Subjective
+  marksObtained    Int?        // Null if subjective and not graded
+  isGraded         Boolean     @default(false)
+  feedback         String?     // Faculty question-level feedback
   gradedAt         DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  attempt  TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attempt          TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
   @@map("test_answers")
