@@ -171,11 +171,11 @@ export default function AdminStudentProfilePage() {
           {activeTab === 'enrollments' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Enrollments</h3>
-              {student.enrollments.length === 0 ? (
+              {(student.enrollments?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-400">No active enrollments.</p>
               ) : (
                 <div className="space-y-3">
-                  {student.enrollments.map((e: Enrollment) => (
+                  {student.enrollments?.map((e: Enrollment) => (
                     <div key={e.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900">{e.batch.subject.name}</p>
@@ -194,12 +194,12 @@ export default function AdminStudentProfilePage() {
           {activeTab === 'test-scores' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Test Scores</h3>
-              {student.testScores.length === 0 ? (
+              {(student.testScores?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-400">No test scores recorded.</p>
               ) : (
                 <>
                   <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={student.testScores.map((s: TestScore) => ({ ...s, date: new Date(s.createdAt).toLocaleDateString(), pct: s.total > 0 ? (s.score / s.total) * 100 : 0 }))}>
+                    <LineChart data={student.testScores?.map((s: TestScore) => ({ ...s, date: new Date(s.createdAt).toLocaleDateString(), pct: s.total > 0 ? (s.score / s.total) * 100 : 0 }))}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                       <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
@@ -208,7 +208,7 @@ export default function AdminStudentProfilePage() {
                     </LineChart>
                   </ResponsiveContainer>
                   <div className="mt-4 space-y-2">
-                    {student.testScores.map((s: TestScore) => (
+                    {student.testScores?.map((s: TestScore) => (
                       <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div>
                           <p className="text-sm font-medium text-gray-900">{s.subject}</p>
@@ -226,11 +226,11 @@ export default function AdminStudentProfilePage() {
           {activeTab === 'attendance' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Attendance by Batch</h3>
-              {student.attendance.length === 0 ? (
+              {(student.attendance?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-400">No attendance records.</p>
               ) : (
                 <div className="space-y-3">
-                  {student.attendance.map((a: AttendanceStat) => (
+                  {student.attendance?.map((a: AttendanceStat) => (
                     <div key={a.batchId} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900">{a.batchSubject}</p>
@@ -252,7 +252,7 @@ export default function AdminStudentProfilePage() {
           {activeTab === 'payments' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment History</h3>
-              {student.payments.length === 0 ? (
+              {(student.payments?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-400">No payments recorded.</p>
               ) : (
                 <table className="w-full text-sm">
@@ -265,7 +265,7 @@ export default function AdminStudentProfilePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {student.payments.map((p: Payment) => (
+                    {student.payments?.map((p: Payment) => (
                       <tr key={p.id} className="border-b border-gray-100">
                         <td className="px-3 py-2 text-gray-900">{p.batch?.subject.name || '—'}</td>
                         <td className="px-3 py-2 text-gray-900">₹{(p.amount / 100).toLocaleString()}</td>
@@ -284,11 +284,11 @@ export default function AdminStudentProfilePage() {
           {activeTab === 'doubts' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Doubt Queries</h3>
-              {student.doubts.length === 0 ? (
+              {(student.doubts?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-400">No doubt queries.</p>
               ) : (
                 <div className="space-y-3">
-                  {student.doubts.map((d: Doubt) => (
+                  {student.doubts?.map((d: Doubt) => (
                     <div key={d.id} className="p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-start justify-between">
                         <p className="text-sm font-medium text-gray-900">{d.question}</p>
@@ -306,11 +306,11 @@ export default function AdminStudentProfilePage() {
           {activeTab === 'parents' && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Parent Links</h3>
-              {student.parents.length === 0 ? (
+              {(student.parents?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-400">No parents linked.</p>
               ) : (
                 <div className="space-y-3">
-                  {student.parents.map((pl: ParentLink) => (
+                  {student.parents?.map((pl: ParentLink) => (
                     <div key={pl.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">
