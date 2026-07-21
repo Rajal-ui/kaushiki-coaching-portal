@@ -14,13 +14,6 @@ CREATE TYPE "QuestionType" AS ENUM ('MCQ', 'SUBJECTIVE');
 CREATE TYPE "AttemptStatus" AS ENUM ('STARTED', 'COMPLETED', 'TIMEOUT');
 
 -- AlterEnum
--- This migration adds more than one value to an enum.
--- With PostgreSQL versions 11 and earlier, this is not possible
--- in a single migration. This can be worked around by creating
--- multiple migrations, each migration adding only one value to
--- the enum.
-
-
 ALTER TYPE "NotificationType" ADD VALUE 'FEEDBACK_PUBLISHED';
 ALTER TYPE "NotificationType" ADD VALUE 'LIVE_SESSION_REMINDER';
 ALTER TYPE "NotificationType" ADD VALUE 'LIVE_SESSION_CANCELLED';
@@ -150,44 +143,6 @@ CREATE TABLE "test_answers" (
     CONSTRAINT "test_answers_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "assignments" (
-    "id" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "instructions" TEXT NOT NULL,
-    "dueDate" TIMESTAMP(3) NOT NULL,
-    "facultyId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "resources" JSONB,
-
-    CONSTRAINT "assignments_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "assignment_batches" (
-    "assignmentId" TEXT NOT NULL,
-    "batchId" TEXT NOT NULL,
-
-    CONSTRAINT "assignment_batches_pkey" PRIMARY KEY ("assignmentId","batchId")
-);
-
--- CreateTable
-CREATE TABLE "assignment_submissions" (
-    "id" TEXT NOT NULL,
-    "assignmentId" TEXT NOT NULL,
-    "studentId" TEXT NOT NULL,
-    "submissionText" TEXT,
-    "fileUrls" TEXT[],
-    "submittedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "grade" INTEGER,
-    "feedback" TEXT,
-    "feedbackPublished" BOOLEAN NOT NULL DEFAULT false,
-    "feedbackPublishedAt" TIMESTAMP(3),
-
-    CONSTRAINT "assignment_submissions_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateIndex
 CREATE INDEX "live_sessions_batchId_scheduledStart_idx" ON "live_sessions"("batchId", "scheduledStart");
 
@@ -205,9 +160,6 @@ CREATE INDEX "recordings_batchId_published_idx" ON "recordings"("batchId", "publ
 
 -- CreateIndex
 CREATE UNIQUE INDEX "test_answers_attemptId_questionId_key" ON "test_answers"("attemptId", "questionId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "assignment_submissions_assignmentId_studentId_key" ON "assignment_submissions"("assignmentId", "studentId");
 
 -- AddForeignKey
 ALTER TABLE "live_sessions" ADD CONSTRAINT "live_sessions_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "batches"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -250,18 +202,3 @@ ALTER TABLE "test_answers" ADD CONSTRAINT "test_answers_attemptId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "test_answers" ADD CONSTRAINT "test_answers_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "questions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "assignments" ADD CONSTRAINT "assignments_facultyId_fkey" FOREIGN KEY ("facultyId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "assignment_batches" ADD CONSTRAINT "assignment_batches_assignmentId_fkey" FOREIGN KEY ("assignmentId") REFERENCES "assignments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "assignment_batches" ADD CONSTRAINT "assignment_batches_batchId_fkey" FOREIGN KEY ("batchId") REFERENCES "batches"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "assignment_submissions" ADD CONSTRAINT "assignment_submissions_assignmentId_fkey" FOREIGN KEY ("assignmentId") REFERENCES "assignments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "assignment_submissions" ADD CONSTRAINT "assignment_submissions_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
