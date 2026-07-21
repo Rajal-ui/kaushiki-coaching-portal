@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, GraduationCap, ClipboardList, CalendarCheck,
   FileText, Settings, MessageSquare, PhoneCall, LogOut, ChevronLeft,
-  BarChart3, BookOpen, Library
+  BarChart3, BookOpen, StickyNote, Video, Library
 } from 'lucide-react';
 
 interface NavItem {
@@ -17,9 +17,11 @@ interface NavItem {
 const STUDENT_NAV: NavItem[] = [
   { label: 'Overview', href: '/dashboard/student', icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: 'My Batches', href: '/dashboard/student/batches', icon: <BookOpen className="w-4 h-4" /> },
+  { label: 'Live Classes', href: '/dashboard/student/live-sessions', icon: <Video className="w-4 h-4" /> },
   { label: 'Tests & Quizzes', href: '/dashboard/student/tests', icon: <ClipboardList className="w-4 h-4" /> },
   { label: 'Test Scores', href: '/dashboard/student/scores', icon: <BarChart3 className="w-4 h-4" /> },
   { label: 'Attendance', href: '/dashboard/student/attendance', icon: <CalendarCheck className="w-4 h-4" /> },
+  { label: 'Assignments', href: '/dashboard/student/assignments', icon: <StickyNote className="w-4 h-4" /> },
   { label: 'Resource Library', href: '/dashboard/student/resources', icon: <Library className="w-4 h-4" /> },
   { label: 'Doubt Queries', href: '/dashboard/student/doubts', icon: <MessageSquare className="w-4 h-4" /> },
   { label: 'Fees & Payments', href: '/dashboard/student/fees', icon: <FileText className="w-4 h-4" /> },
@@ -32,7 +34,9 @@ const PARENT_NAV: NavItem[] = [
 const FACULTY_NAV: NavItem[] = [
   { label: 'Overview', href: '/dashboard/faculty', icon: <LayoutDashboard className="w-4 h-4" /> },
   { label: 'My Batches', href: '/dashboard/faculty/batches', icon: <BookOpen className="w-4 h-4" /> },
+  { label: 'Live Classes', href: '/dashboard/faculty/live-sessions', icon: <Video className="w-4 h-4" /> },
   { label: 'Test Manager', href: '/dashboard/faculty/tests', icon: <ClipboardList className="w-4 h-4" /> },
+  { label: 'Assignments', href: '/dashboard/faculty/assignments', icon: <StickyNote className="w-4 h-4" /> },
   { label: 'Resources', href: '/dashboard/faculty/resources', icon: <Library className="w-4 h-4" /> },
   { label: 'Doubt Inbox', href: '/dashboard/faculty/doubts', icon: <MessageSquare className="w-4 h-4" /> },
 ];
@@ -43,8 +47,10 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Batches', href: '/dashboard/admin/batches', icon: <BookOpen className="w-4 h-4" /> },
   { label: 'Students', href: '/dashboard/admin/students', icon: <GraduationCap className="w-4 h-4" /> },
   { label: 'Faculty', href: '/dashboard/admin/faculty', icon: <Users className="w-4 h-4" /> },
+  { label: 'Assignments', href: '/dashboard/admin/assignments', icon: <StickyNote className="w-4 h-4" /> },
   { label: 'Payments', href: '/dashboard/admin/payments', icon: <FileText className="w-4 h-4" /> },
   { label: 'Schedule', href: '/dashboard/admin/schedule', icon: <CalendarCheck className="w-4 h-4" /> },
+  { label: 'Live Sessions', href: '/dashboard/admin/live-sessions', icon: <Video className="w-4 h-4" /> },
   { label: 'Reports', href: '/dashboard/admin/reports', icon: <BarChart3 className="w-4 h-4" /> },
   { label: 'SMS Logs', href: '/dashboard/admin/sms-logs', icon: <MessageSquare className="w-4 h-4" /> },
   { label: 'Settings', href: '/dashboard/admin/settings', icon: <Settings className="w-4 h-4" /> },
