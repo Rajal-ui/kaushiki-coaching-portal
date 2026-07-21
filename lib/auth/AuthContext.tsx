@@ -27,6 +27,16 @@ function parseJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
+const ACCESS_TOKEN_COOKIE_MAX_AGE = 15 * 60; // 15 minutes in seconds
+
+function setAccessTokenCookie(token: string) {
+  document.cookie = `accessToken=${token}; path=/; max-age=${ACCESS_TOKEN_COOKIE_MAX_AGE}; SameSite=Lax; Secure`;
+}
+
+function removeAccessTokenCookie() {
+  document.cookie = 'accessToken=; path=/; max-age=0';
+}
+
 function getUserFromToken(): AuthUser | null {
   if (typeof window === 'undefined') return null;
   const token = localStorage.getItem('accessToken');
@@ -51,12 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback((accessToken: string, refreshToken: string) => {
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    setAccessTokenCookie(accessToken);
     setUser(getUserFromToken());
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    removeAccessTokenCookie();
     setUser(null);
     window.location.href = '/login';
   }, []);

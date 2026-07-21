@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { loadGoogleScript } from '@/lib/google-one-tap';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -19,6 +19,7 @@ type OtpStep = 'phone' | 'verify';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isAuthenticated, login, logout } = useAuth();
   const [method, setMethod] = useState<AuthMethod>('otp');
   const [otpStep, setOtpStep] = useState<OtpStep>('phone');
@@ -29,6 +30,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  const callbackUrl = searchParams.get('callbackUrl');
+  const safeRedirect = callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')
+    ? callbackUrl
+    : null;
 
   useEffect(() => {
     loadGoogleScript().then(() => {
@@ -52,7 +58,7 @@ export default function LoginPage() {
               }
               const data = await res.json();
               login(data.accessToken, data.refreshToken);
-              router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
+              router.push(safeRedirect || ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
             } catch (err) {
               setError(err instanceof Error ? err.message : 'Something went wrong');
             } finally {
@@ -111,7 +117,7 @@ export default function LoginPage() {
       }
       const data = await res.json();
       login(data.accessToken, data.refreshToken);
-      router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
+      router.push(safeRedirect || ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -135,7 +141,7 @@ export default function LoginPage() {
       }
       const data = await res.json();
       login(data.accessToken, data.refreshToken);
-      router.push(ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
+      router.push(safeRedirect || ROLE_REDIRECTS[data.user.role] || '/dashboard/student');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

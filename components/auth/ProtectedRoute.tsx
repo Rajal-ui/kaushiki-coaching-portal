@@ -32,6 +32,7 @@ async function tryRefreshToken(): Promise<boolean> {
     const data = await res.json();
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
+    document.cookie = `accessToken=${data.accessToken}; path=/; max-age=900; SameSite=Lax; Secure`;
     return true;
   } catch {
     return false;
@@ -64,6 +65,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (!payload) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      document.cookie = 'accessToken=; path=/; max-age=0';
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
@@ -75,6 +77,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
         if (!ok) {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
+          document.cookie = 'accessToken=; path=/; max-age=0';
           router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
           return;
         }
