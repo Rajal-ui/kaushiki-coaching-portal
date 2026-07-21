@@ -19,7 +19,7 @@ export const listAssignmentsSchema = z.object({
 export const submitAssignmentSchema = z.object({
   submissionText: z.string().optional(),
   fileUrls: z
-    .array(z.string().url())
+    .array(z.object({ name: z.string(), url: z.string() }))
     .optional()
     .default([]),
 });

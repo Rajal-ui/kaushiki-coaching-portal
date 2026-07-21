@@ -611,18 +611,18 @@ model TestAnswer {
 }
 
 model Assignment {
-  id           String   @id @default(cuid())
+  id           String         @id @default(cuid())
   title        String
-  instructions String // Rich-text / markdown instructions
+  instructions String         // Rich-text / markdown instructions
   dueDate      DateTime
   facultyId    String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  faculty     User                   @relation("FacultyAssignments", fields: [facultyId], references: [id])
-  batches     AssignmentBatch[]
-  submissions AssignmentSubmission[]
-  resources   Json? // Array of { name: string, url: string }
+  faculty      User               @relation("FacultyAssignments", fields: [facultyId], references: [id])
+  batches      AssignmentBatch[]
+  submissions  AssignmentSubmission[]
+  resources    Json?              // Array of { name: string, url: string }
 
   @@map("assignments")
 }
@@ -639,15 +639,15 @@ model AssignmentBatch {
 }
 
 model AssignmentSubmission {
-  id                  String    @id @default(cuid())
-  assignmentId        String
-  studentId           String
-  submissionText      String? // Rich-text student response
-  fileUrls            String[]
-  submittedAt         DateTime  @default(now())
-  grade               Int? // Score
-  feedback            String? // Markdown feedback
-  feedbackPublished   Boolean   @default(false)
+  id                String    @id @default(cuid())
+  assignmentId      String
+  studentId         String
+  submissionText    String?   // Rich-text student response
+  fileUrls          Json?     // Array of { name: string, url: string }
+  submittedAt       DateTime  @default(now())
+  grade             Int?      // Score
+  feedback          String?   // Markdown feedback
+  feedbackPublished Boolean   @default(false)
   feedbackPublishedAt DateTime?
 
   assignment Assignment @relation(fields: [assignmentId], references: [id])

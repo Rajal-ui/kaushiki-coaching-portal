@@ -16,7 +16,7 @@ interface AssignmentDetail {
   mySubmission?: {
     id: string;
     submissionText?: string | null;
-    fileUrls?: string[] | null;
+    fileUrls?: { name: string; url: string }[] | null;
     submittedAt: string;
     grade?: number | null;
     feedback?: string | null;
@@ -33,7 +33,8 @@ export default function StudentAssignmentDetailPage({ params }: { params: Promis
   const [assignment, setAssignment] = useState<AssignmentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [submissionText, setSubmissionText] = useState('');
-  const [files, setFiles] = useState<string[]>([]);
+  const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
+  const [newFileName, setNewFileName] = useState('');
   const [newFileUrl, setNewFileUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -55,8 +56,9 @@ export default function StudentAssignmentDetailPage({ params }: { params: Promis
   }, [token]);
 
   function addFile() {
-    if (!newFileUrl.trim()) return;
-    setFiles(prev => [...prev, newFileUrl.trim()]);
+    if (!newFileName.trim() || !newFileUrl.trim()) return;
+    setFiles(prev => [...prev, { name: newFileName.trim(), url: newFileUrl.trim() }]);
+    setNewFileName('');
     setNewFileUrl('');
   }
 
@@ -149,10 +151,10 @@ export default function StudentAssignmentDetailPage({ params }: { params: Promis
 
           {assignment.mySubmission.fileUrls && assignment.mySubmission.fileUrls.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {assignment.mySubmission.fileUrls.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+              {assignment.mySubmission.fileUrls.map((f, i) => (
+                <a key={i} href={f.url} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">
-                  <Download className="w-3.5 h-3.5" /> {url.split('/').pop()}
+                  <Download className="w-3.5 h-3.5" /> {f.name}
                 </a>
               ))}
             </div>
@@ -195,15 +197,17 @@ export default function StudentAssignmentDetailPage({ params }: { params: Promis
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Upload Files (optional)</label>
             <div className="flex gap-2 mb-2">
+              <input value={newFileName} onChange={e => setNewFileName(e.target.value)} placeholder="File name"
+                className="flex-1 h-10 px-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 outline-none text-sm" />
               <input value={newFileUrl} onChange={e => setNewFileUrl(e.target.value)} placeholder="File URL"
                 className="flex-1 h-10 px-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 outline-none text-sm" />
-              <button type="button" onClick={addFile} disabled={!newFileUrl.trim()}
+              <button type="button" onClick={addFile} disabled={!newFileName.trim() || !newFileUrl.trim()}
                 className="h-10 px-4 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition-colors">Add</button>
             </div>
-            {files.map((url, i) => (
+            {files.map((f, i) => (
               <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-1.5 mb-1">
-                <FileText className="w-4 h-4 text-primary" />
-                <span className="text-xs text-gray-400 truncate flex-1">{url}</span>
+                <FileText className="w-4 h-4 text-primary" /> <span className="font-medium">{f.name}</span>
+                <span className="text-xs text-gray-400 truncate flex-1">{f.url}</span>
                 <button type="button" onClick={() => removeFile(i)} className="text-error hover:text-red-700 text-xs font-medium">Remove</button>
               </div>
             ))}
