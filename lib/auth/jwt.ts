@@ -8,6 +8,7 @@ const REFRESH_TTL = '7d';
 
 export interface AccessTokenPayload extends JWTPayload {
   sub: string;
+  name: string;
   role: string;
   sessionId: string;
 }
@@ -21,8 +22,8 @@ export function generateSessionId(): string {
   return crypto.randomUUID();
 }
 
-export async function signAccessToken(userId: string, role: string, sessionId: string): Promise<string> {
-  return new SignJWT({ sub: userId, role, sessionId })
+export async function signAccessToken(userId: string, role: string, sessionId: string, name?: string): Promise<string> {
+  return new SignJWT({ sub: userId, name: name ?? '', role, sessionId })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TTL)

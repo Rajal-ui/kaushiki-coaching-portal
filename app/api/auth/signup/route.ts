@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     });
 
     const sessionId = generateSessionId();
-    const accessToken = await signAccessToken(user.id, user.role, sessionId);
+    const accessToken = await signAccessToken(user.id, user.role, sessionId, user.name);
     const refreshToken = await signRefreshToken(user.id, sessionId);
 
     const refreshKey = buildRefreshTokenRedisKey(sessionId);

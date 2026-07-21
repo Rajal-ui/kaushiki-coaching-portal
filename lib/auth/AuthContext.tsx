@@ -36,7 +36,7 @@ function getUserFromToken(): AuthUser | null {
   if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) return null;
   return {
     id: payload.sub as string,
-    name: (payload.name as string) || 'User',
+    name: (payload.name as string) || '',
     role: payload.role as string,
   };
 }

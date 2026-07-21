@@ -75,9 +75,10 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const role = user?.role || 'STUDENT';
+    const name = user?.name || '';
 
     const newSessionId = generateSessionId();
-    const newAccessToken = await signAccessToken(userId, role, newSessionId);
+    const newAccessToken = await signAccessToken(userId, role, newSessionId, name);
     const newRefreshToken = await signRefreshToken(userId, newSessionId);
 
     const newRefreshKey = buildRefreshTokenRedisKey(newSessionId);
