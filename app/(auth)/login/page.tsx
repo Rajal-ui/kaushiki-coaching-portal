@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { Suspense, useState, useRef, useEffect, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { loadGoogleScript } from '@/lib/google-one-tap';
@@ -18,6 +18,14 @@ type AuthMethod = 'otp' | 'password';
 type OtpStep = 'phone' | 'verify';
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, login, logout } = useAuth();
