@@ -57,7 +57,8 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
     const token = localStorage.getItem('accessToken');
     if (!token) {
-      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      document.cookie = 'accessToken=; path=/; max-age=0';
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
       return;
     }
 
@@ -66,7 +67,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       document.cookie = 'accessToken=; path=/; max-age=0';
-      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
       return;
     }
 
@@ -78,7 +79,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           document.cookie = 'accessToken=; path=/; max-age=0';
-          router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+          router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
           return;
         }
         const newToken = localStorage.getItem('accessToken');
