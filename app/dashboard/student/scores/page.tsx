@@ -206,7 +206,7 @@ export default function StudentScoresPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                       <XAxis dataKey="date" stroke="#9CA3AF" fontSize={11} />
                       <YAxis domain={[0, 100]} stroke="#9CA3AF" fontSize={11} unit="%" />
-                      <Tooltip formatter={(value: string | number) => [`${value}%`, 'Score']} />
+                      <Tooltip formatter={(value: string | number | undefined) => [value !== undefined ? `${value}%` : 'N/A', 'Score']} contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }} />
                       <Line type="monotone" dataKey="percentage" stroke="#2563EB" strokeWidth={3} activeDot={{ r: 8 }} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -222,7 +222,7 @@ export default function StudentScoresPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                       <XAxis dataKey="subject" stroke="#9CA3AF" fontSize={11} />
                       <YAxis domain={[0, 100]} stroke="#9CA3AF" fontSize={11} unit="%" />
-                      <Tooltip formatter={(value: string | number) => [`${value}%`, 'Avg Score']} />
+                      <Tooltip formatter={(value: string | number | undefined) => [value !== undefined ? `${value}%` : 'N/A', 'Avg Score']} contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }} />
                       <Bar dataKey="percentage" fill="#8B5CF6" radius={[4, 4, 0, 0]} maxBarSize={45} />
                     </BarChart>
                   </ResponsiveContainer>
