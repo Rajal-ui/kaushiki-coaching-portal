@@ -15,7 +15,11 @@ export async function middleware(request: NextRequest) {
   try {
     await jwtVerify(token, ACCESS_SECRET);
     return NextResponse.next();
-  } catch {
+  } catch (error) {
+    if (error instanceof errors.JWTExpired) {
+      // Allow expired tokens through so the client-side ProtectedRoute can handle the refresh logic.
+      return NextResponse.next();
+    }
     return redirectToLogin(request);
   }
 }
