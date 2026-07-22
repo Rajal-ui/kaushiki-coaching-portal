@@ -10,7 +10,13 @@ const config = {
     '/node_modules/(?!jose|bcryptjs)',
   ],
   transform: {
-    '^.+\\.(t|j)sx?$': ['babel-jest', {}],
+    '^.+\\.(t|j)sx?$': ['babel-jest', {
+      presets: [
+        ['@babel/preset-env', { targets: { node: 'current' } }],
+        ['@babel/preset-react', { runtime: 'automatic' }],
+        '@babel/preset-typescript',
+      ],
+    }],
   },
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',
