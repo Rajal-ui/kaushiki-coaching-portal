@@ -149,6 +149,27 @@ async function sendViaSmtp(options: SendEmailOptions): Promise<EmailResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Error classification
+// ---------------------------------------------------------------------------
+
+const DEFINITE_SMTP_FAILURES = new Set([
+  'EAUTH',
+  'EENVELOPE',
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'ENETUNREACH',
+]);
+
+function isDefiniteNonDelivery(error: Error): boolean {
+  const code = (error as NodeJS.ErrnoException).code;
+  if (code && DEFINITE_SMTP_FAILURES.has(code)) return true;
+  const msg = error.message.toLowerCase();
+  if (msg.includes('authentication') || msg.includes('invalid credentials')) return true;
+  if (msg.includes('invalid recipient') || msg.includes('recipient rejected')) return true;
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -173,6 +194,11 @@ export async function sendEmailWithFallback(options: SendEmailOptions): Promise<
 
   const result = await sendEmail(options);
   if (result.success) return result;
+
+  if (primary === 'smtp' && result.error && !isDefiniteNonDelivery(result.error)) {
+    console.warn(`[Email] SMTP indeterminate failure — skipping fallback to prevent duplicate delivery`);
+    return result;
+  }
 
   console.warn(`[Email] ${primary} failed, trying ${fallback} fallback`);
 
