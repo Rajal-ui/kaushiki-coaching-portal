@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { jwtVerify, errors } from 'jose';
 
 const ACCESS_SECRET = Buffer.from(
   process.env.JWT_ACCESS_SECRET || 'fallback-access-secret-32-chars-min!!'
@@ -17,7 +17,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   } catch (error) {
     if (error instanceof errors.JWTExpired) {
-      // Allow expired tokens through so the client-side ProtectedRoute can handle the refresh logic.
       return NextResponse.next();
     }
     return redirectToLogin(request);

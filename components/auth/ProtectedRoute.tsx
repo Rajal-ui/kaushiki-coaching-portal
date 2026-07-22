@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth, removeAccessTokenCookie } from '@/lib/auth/AuthContext';
 
 const PUBLIC_PATHS = ['/', '/login', '/signup', '/programs', '/contact'];
 
@@ -19,23 +20,20 @@ function parseJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
-async function tryRefreshToken(): Promise<boolean> {
+async function tryRefreshToken(): Promise<{ accessToken: string; refreshToken: string } | null> {
   const refreshToken = localStorage.getItem('refreshToken');
-  if (!refreshToken) return false;
+  if (!refreshToken) return null;
   try {
     const res = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     });
-    if (!res.ok) return false;
+    if (!res.ok) return null;
     const data = await res.json();
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-    document.cookie = `accessToken=${data.accessToken}; path=/; max-age=900; SameSite=Lax; Secure`;
-    return true;
+    return { accessToken: data.accessToken, refreshToken: data.refreshToken };
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -47,6 +45,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { login } = useAuth();
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
@@ -65,7 +64,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (!payload) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      document.cookie = 'accessToken=; path=/; max-age=0';
+      removeAccessTokenCookie();
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       return;
     }
@@ -73,16 +72,16 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     const isExpired = typeof payload.exp === 'number' && payload.exp * 1000 < Date.now();
 
     if (isExpired) {
-      tryRefreshToken().then(ok => {
-        if (!ok) {
+      tryRefreshToken().then(tokens => {
+        if (!tokens) {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
-          document.cookie = 'accessToken=; path=/; max-age=0';
+          removeAccessTokenCookie();
           router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
           return;
         }
-        const newToken = localStorage.getItem('accessToken');
-        const newPayload = newToken ? parseJwtPayload(newToken) : null;
+        login(tokens.accessToken, tokens.refreshToken);
+        const newPayload = parseJwtPayload(tokens.accessToken);
         if (newPayload && allowedRoles && !allowedRoles.includes(newPayload.role as string)) {
           router.push('/');
           return;
@@ -97,7 +96,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       return;
     }
     setAuthorized(true);
-  }, [pathname, router, allowedRoles]);
+  }, [pathname, router, allowedRoles, login]);
 
   if (!authorized) {
     return (

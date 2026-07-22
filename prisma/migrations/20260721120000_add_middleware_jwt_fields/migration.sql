@@ -1,1 +1,0 @@
-﻿-- No schema changes required. JWT tokens are stored in cookies and localStorage, not in the database.

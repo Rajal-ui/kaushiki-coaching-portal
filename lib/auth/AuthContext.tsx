@@ -33,8 +33,8 @@ function setAccessTokenCookie(token: string) {
   document.cookie = `accessToken=${token}; path=/; max-age=${ACCESS_TOKEN_COOKIE_MAX_AGE}; SameSite=Lax; Secure`;
 }
 
-function removeAccessTokenCookie() {
-  document.cookie = 'accessToken=; path=/; max-age=0';
+export function removeAccessTokenCookie() {
+  document.cookie = 'accessToken=; path=/; max-age=0; SameSite=Lax; Secure';
 }
 
 function getUserFromToken(): AuthUser | null {
