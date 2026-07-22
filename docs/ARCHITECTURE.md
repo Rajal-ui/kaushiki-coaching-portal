@@ -6,10 +6,10 @@ The Kaushiki Classes platform uses a feature-first architecture pattern to ensur
 ### Portal Separation
 We utilize Next.js App Router's Route Groups to isolate domains:
 - `(auth)`: Login and authentication flows.
-- `(admin)`: Administrative dashboard and management.
-- `(student)`: Student learning interface.
-- `(faculty)`: Teacher and staff portal.
-- `(parent)`: Parent monitoring portal.
+- `/dashboard/admin`: Administrative dashboard and management.
+- `/dashboard/student`: Student learning interface.
+- `/dashboard/faculty`: Teacher and staff portal.
+- `/dashboard/parent`: Parent monitoring portal.
 
 ### Component Structure
 - `/components/ui`: Primitive components (buttons, inputs) acting as our design system foundation.
