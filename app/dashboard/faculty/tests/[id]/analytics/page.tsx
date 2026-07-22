@@ -204,7 +204,7 @@ export default function FacultyAnalyticsPage({ params: paramsPromise }: { params
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} />
                 <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} allowDecimals={false} />
                 <Tooltip
-                  content={({ active, payload }: { active: boolean; payload: Array<{ value: number; name: string; payload: { label: string; count: number } }> }) => {
+                  content={({ active, payload }: any) => {
                     if (!active || !payload?.length) return null;
                     const d = payload[0].payload;
                     return (
