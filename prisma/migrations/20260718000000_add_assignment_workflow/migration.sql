@@ -55,6 +55,10 @@ CREATE TABLE "test_attempts" (
     CONSTRAINT "test_attempts_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateIndex
+CREATE UNIQUE INDEX "test_attempts_testId_studentId_key"
+ON "test_attempts"("testId", "studentId");
+
 -- CreateTable
 CREATE TABLE "test_answers" (
     "id" TEXT NOT NULL,
