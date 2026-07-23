@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify, errors } from 'jose';
 
-const ACCESS_SECRET = Buffer.from(
-  process.env.JWT_ACCESS_SECRET || 'fallback-access-secret-32-chars-min!!'
-);
+if (!process.env.JWT_ACCESS_SECRET) {
+  throw new Error('JWT_ACCESS_SECRET environment variable is required');
+}
+const ACCESS_SECRET = Buffer.from(process.env.JWT_ACCESS_SECRET);
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('accessToken')?.value;

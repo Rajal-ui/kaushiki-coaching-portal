@@ -49,15 +49,27 @@ export async function POST(
     const now = new Date();
 
     if (!attempt) {
-      attempt = await prisma.testAttempt.create({
-        data: {
-          testId: id,
-          studentId: auth.user.id,
-          startTime: now,
-          status: 'STARTED',
-        },
-        include: { answers: true },
-      });
+      try {
+        attempt = await prisma.testAttempt.create({
+          data: {
+            testId: id,
+            studentId: auth.user.id,
+            startTime: now,
+            status: 'STARTED',
+          },
+          include: { answers: true },
+        });
+      } catch (err) {
+        if (err && typeof err === 'object' && 'code' in err && err.code === 'P2002') {
+          attempt = await prisma.testAttempt.findFirst({
+            where: { testId: id, studentId: auth.user.id },
+            include: { answers: true },
+          });
+          if (!attempt) throw err;
+        } else {
+          throw err;
+        }
+      }
     } else if (attempt.status === 'STARTED') {
       const elapsedSeconds = Math.floor((now.getTime() - new Date(attempt.startTime).getTime()) / 1000);
       const limitSeconds = test.timeLimit * 60;
