@@ -1,28 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 import { UpdateSettingSchema } from '@/lib/validators/settings';
 
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const GET = withRole('ADMIN', async (req) => {
   const settings = await prisma.siteSetting.findMany({ orderBy: { key: 'asc' } });
   const map: Record<string, string> = {};
   for (const s of settings) map[s.key] = s.value;
   return NextResponse.json({ data: map });
-}
+});
 
-export async function PATCH(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const PATCH = withRole('ADMIN', async (req) => {
   const body = await req.json();
   if (!body.key || !body.value) {
     return NextResponse.json({ error: 'key and value are required', code: 'VALIDATION_ERROR' }, { status: 400 });
@@ -40,4 +28,4 @@ export async function PATCH(req: NextRequest) {
   });
 
   return NextResponse.json({ data: setting });
-}
+});

@@ -1,15 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const GET = withRole('ADMIN', async (req) => {
   try {
     const faculty = await prisma.user.findMany({
       where: { role: 'FACULTY' },
@@ -45,15 +39,9 @@ export async function GET(req: NextRequest) {
     console.error('[List Faculty] Error:', err);
     return NextResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch faculty' } }, { status: 500 });
   }
-}
+});
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const POST = withRole('ADMIN', async (req) => {
   try {
     let body: { name: string; phone: string; email?: string };
     try {
@@ -103,4 +91,4 @@ export async function POST(req: NextRequest) {
     console.error('[Create Faculty] Error:', err);
     return NextResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to create faculty' } }, { status: 500 });
   }
-}
+});

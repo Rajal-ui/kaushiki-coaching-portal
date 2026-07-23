@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { updateTestSchema } from '@/lib/validators/tests';
 
 export async function GET(
@@ -80,19 +80,11 @@ export async function GET(
   }
 }
 
-export async function PATCH(
+export const PATCH = withRole(['FACULTY', 'ADMIN'], async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Access denied' } },
-      { status: 403 }
-    );
-  }
+  { params }: { params: Promise<Record<string, string>> }
+) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   let body: unknown;
   try {
@@ -122,7 +114,7 @@ export async function PATCH(
       );
     }
 
-    if (auth.user.role === 'FACULTY' && test.facultyId !== auth.user.id) {
+    if (user.role === 'FACULTY' && test.facultyId !== user.id) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'You can only update your own tests' } },
         { status: 403 }
@@ -142,21 +134,13 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(
+export const DELETE = withRole(['FACULTY', 'ADMIN'], async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Access denied' } },
-      { status: 403 }
-    );
-  }
+  { params }: { params: Promise<Record<string, string>> }
+) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   try {
     const { id } = await params;
@@ -172,7 +156,7 @@ export async function DELETE(
       );
     }
 
-    if (auth.user.role === 'FACULTY' && test.facultyId !== auth.user.id) {
+    if (user.role === 'FACULTY' && test.facultyId !== user.id) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'You can only delete your own tests' } },
         { status: 403 }
@@ -196,4 +180,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});

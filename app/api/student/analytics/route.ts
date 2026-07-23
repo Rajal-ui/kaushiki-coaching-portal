@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'STUDENT') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only students have personal test analytics' } },
-      { status: 403 }
-    );
-  }
+export const GET = withRole('STUDENT', async (req: NextRequest) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   try {
     const attempts = await prisma.testAttempt.findMany({
       where: {
-        studentId: auth.user.id,
+        studentId: user.id,
         status: { in: ['COMPLETED', 'TIMEOUT'] },
         score: { not: null },
       },
@@ -86,4 +78,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

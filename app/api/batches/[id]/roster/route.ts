@@ -1,21 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'ADMIN' && auth.user.role !== 'FACULTY') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Insufficient permissions' } },
-      { status: 403 }
-    );
-  }
-
+export const GET = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
   try {
     const { id } = await params;
     const batch = await prisma.batch.findUnique({
@@ -33,7 +20,9 @@ export async function GET(
       );
     }
 
-    if (auth.user.role === 'FACULTY' && batch.faculty.id !== auth.user.id) {
+    const { user } = req as AuthenticatedRequest;
+    if (!user) return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 });
+    if (user.role === 'FACULTY' && batch.faculty.id !== user.id) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'You are not assigned to this batch' } },
         { status: 403 }
@@ -61,4 +50,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});

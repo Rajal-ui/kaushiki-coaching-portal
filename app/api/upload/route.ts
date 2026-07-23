@@ -1,18 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { NextResponse } from 'next/server';
+import { withRole } from '@/lib/auth/middleware';
 import { uploadFile, UploadError } from '@/lib/upload';
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty and admins can upload files' } },
-      { status: 403 }
-    );
-  }
-
+export const POST = withRole(['FACULTY', 'ADMIN'], async (req) => {
   let formData: FormData;
   try {
     formData = await req.formData();
@@ -47,4 +37,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { createTestSchema } from '@/lib/validators/tests';
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty and admins can create tests' } },
-      { status: 403 }
-    );
-  }
+export const POST = withRole(['FACULTY', 'ADMIN'], async (req: NextRequest) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   let body: unknown;
   try {
@@ -43,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (auth.user.role === 'FACULTY' && batch.facultyId !== auth.user.id) {
+    if (user.role === 'FACULTY' && batch.facultyId !== user.id) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'You can only create tests for your own batches' } },
         { status: 403 }
@@ -57,7 +49,7 @@ export async function POST(req: NextRequest) {
         timeLimit,
         totalMarks,
         batchId,
-        facultyId: auth.user.id,
+        facultyId: user.id,
         status: 'DRAFT',
       },
     });
@@ -70,7 +62,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 export async function GET(req: NextRequest) {
   const auth = await authenticateRequest(req as AuthenticatedRequest);

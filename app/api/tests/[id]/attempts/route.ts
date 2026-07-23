@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 
-export async function POST(
+export const POST = withRole('STUDENT', async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'STUDENT') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only students can start test attempts' } },
-      { status: 403 }
-    );
-  }
-
-  const { id } = await params;
+  { params }: { params: Promise<Record<string, string>> }
+): Promise<NextResponse> => {
+  const user = (req as AuthenticatedRequest).user!;
+  const { id } = await params as { id: string };
 
   try {
     const test = await prisma.test.findUnique({
@@ -32,7 +23,7 @@ export async function POST(
     }
 
     const enrolled = await prisma.enrollment.findFirst({
-      where: { studentId: auth.user.id, batchId: test.batchId, status: 'ACTIVE' },
+      where: { studentId: user.id, batchId: test.batchId, status: 'ACTIVE' },
     });
     if (!enrolled) {
       return NextResponse.json(
@@ -42,7 +33,7 @@ export async function POST(
     }
 
     let attempt = await prisma.testAttempt.findFirst({
-      where: { testId: id, studentId: auth.user.id },
+      where: { testId: id, studentId: user.id },
       include: { answers: true },
     });
 
@@ -53,7 +44,7 @@ export async function POST(
         attempt = await prisma.testAttempt.create({
           data: {
             testId: id,
-            studentId: auth.user.id,
+            studentId: user.id,
             startTime: now,
             status: 'STARTED',
           },
@@ -62,7 +53,7 @@ export async function POST(
       } catch (err) {
         if (err && typeof err === 'object' && 'code' in err && err.code === 'P2002') {
           attempt = await prisma.testAttempt.findFirst({
-            where: { testId: id, studentId: auth.user.id },
+            where: { testId: id, studentId: user.id },
             include: { answers: true },
           });
           if (!attempt) throw err;
@@ -128,13 +119,13 @@ export async function POST(
 
           if (allMCQGraded) {
             const existingScore = await tx.testScore.findFirst({
-              where: { batchId: test.batchId, studentId: auth.user.id, testName: test.title },
+              where: { batchId: test.batchId, studentId: user.id, testName: test.title },
             });
             if (!existingScore) {
               await tx.testScore.create({
                 data: {
                   batchId: test.batchId,
-                  studentId: auth.user.id,
+                  studentId: user.id,
                   testName: test.title,
                   score: score,
                   maxScore: test.totalMarks,
@@ -158,7 +149,7 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});
 
 export async function GET(
   req: NextRequest,

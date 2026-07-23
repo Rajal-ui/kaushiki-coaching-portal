@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { createAssignmentSchema, listAssignmentsSchema } from '@/lib/validators/assignments';
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty and admins can create assignments' } },
-      { status: 403 }
-    );
-  }
+export const POST = withRole(['FACULTY', 'ADMIN'], async (req: NextRequest) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   let body: unknown;
   try {
@@ -46,8 +39,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (auth.user.role === 'FACULTY') {
-      const notMine = batches.filter(b => b.facultyId !== auth.user.id);
+    if (user.role === 'FACULTY') {
+      const notMine = batches.filter(b => b.facultyId !== user.id);
       if (notMine.length > 0) {
         return NextResponse.json(
           { error: { code: 'FORBIDDEN', message: 'You can only assign to your own batches' } },
@@ -61,7 +54,7 @@ export async function POST(req: NextRequest) {
         title,
         instructions,
         dueDate: new Date(dueDate),
-        facultyId: auth.user.id,
+        facultyId: user.id,
         resources: resources.length > 0 ? resources : undefined,
         batches: {
           create: batchIds.map(batchId => ({ batchId })),
@@ -83,7 +76,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 export async function GET(req: NextRequest) {
   const auth = await authenticateRequest(req as AuthenticatedRequest);

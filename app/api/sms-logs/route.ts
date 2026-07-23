@@ -1,17 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only admins can view SMS logs' } },
-      { status: 403 }
-    );
-  }
-
+export const GET = withRole('ADMIN', async (req) => {
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
@@ -45,4 +36,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
