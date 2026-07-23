@@ -1,20 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'FACULTY') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty can view their batches' } },
-      { status: 403 }
-    );
-  }
+export const GET = withRole(['FACULTY'], async (req) => {
+  const { user } = req as AuthenticatedRequest;
+  if (!user) return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 });
 
   try {
     const batches = await prisma.batch.findMany({
-      where: { facultyId: auth.user.id },
+      where: { facultyId: user.id },
       include: {
         subject: {
           select: { id: true, name: true, track: { select: { name: true } } },
@@ -31,4 +25,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

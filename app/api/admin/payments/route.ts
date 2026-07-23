@@ -1,14 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const GET = withRole('ADMIN', async (req) => {
   const url = new URL(req.url);
   const status = url.searchParams.get('status') || '';
   const search = url.searchParams.get('search') || '';
@@ -89,4 +83,4 @@ export async function GET(req: NextRequest) {
     console.error('[Admin Payments] Error:', err);
     return NextResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch payments' } }, { status: 500 });
   }
-}
+});

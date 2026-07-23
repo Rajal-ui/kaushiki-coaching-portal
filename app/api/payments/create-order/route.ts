@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { createOrderSchema } from '@/lib/validators/payments';
 import { createRazorpayOrder } from '@/lib/razorpay';
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'STUDENT' && auth.user.role !== 'PARENT') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only students and parents can create payment orders' } },
-      { status: 403 }
-    );
-  }
+export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   let body: unknown;
   try {
@@ -47,7 +40,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (enrollment.studentId !== auth.user.id && auth.user.role !== 'PARENT') {
+    if (enrollment.studentId !== user.id && user.role !== 'PARENT') {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'Not your enrollment' } },
         { status: 403 }
@@ -93,4 +86,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

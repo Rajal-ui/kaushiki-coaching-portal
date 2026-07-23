@@ -1,17 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const GET = withRole('ADMIN', async (req, { params }) => {
   try {
     const { id } = await params;
 
@@ -89,18 +80,9 @@ export async function GET(
     console.error('[Student Profile] Error:', err);
     return NextResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch student profile' } }, { status: 500 });
   }
-}
+});
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const PATCH = withRole('ADMIN', async (req, { params }) => {
   try {
     const { id } = await params;
 
@@ -131,4 +113,4 @@ export async function PATCH(
     console.error('[Update Student] Error:', err);
     return NextResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to update student' } }, { status: 500 });
   }
-}
+});

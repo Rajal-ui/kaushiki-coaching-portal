@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { createEnrollmentSchema, listEnrollmentsSchema } from '@/lib/validators/enrollments';
 import { createRazorpayOrder } from '@/lib/razorpay';
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'STUDENT' && auth.user.role !== 'PARENT') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only students and parents can enroll' } },
-      { status: 403 }
-    );
-  }
+export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   let body: unknown;
   try {
@@ -58,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     const existingEnrollment = await prisma.enrollment.findUnique({
-      where: { studentId_batchId: { studentId: auth.user.id, batchId } },
+      where: { studentId_batchId: { studentId: user.id, batchId } },
     });
 
     if (existingEnrollment) {
@@ -69,20 +62,20 @@ export async function POST(req: NextRequest) {
     }
 
     const amount = 500000;
-    const receipt = `enr_${auth.user.id.slice(0, 8)}_${Date.now()}`;
+    const receipt = `enr_${user.id.slice(0, 8)}_${Date.now()}`;
 
     const razorpayOrder = await createRazorpayOrder(amount, receipt);
 
     const enrollment = await prisma.$transaction(async (tx) => {
       const enr = await tx.enrollment.create({
         data: {
-          studentId: auth.user.id,
+          studentId: user.id,
           batchId,
           status: 'PENDING',
-          enrolledById: auth.user.id,
+          enrolledById: user.id,
           payment: {
             create: {
-              payerId: auth.user.id,
+              payerId: user.id,
               amount,
               currency: 'INR',
               gateway: 'razorpay',
@@ -126,7 +119,7 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 export async function GET(req: NextRequest) {
   const auth = await authenticateRequest(req as AuthenticatedRequest);

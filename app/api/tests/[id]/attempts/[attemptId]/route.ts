@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { attemptAnswerSchema } from '@/lib/validators/tests';
 
 export async function GET(
@@ -59,21 +59,13 @@ export async function GET(
   }
 }
 
-export async function PATCH(
+export const PATCH = withRole('STUDENT', async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; attemptId: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
+  { params }: { params: Promise<Record<string, string>> }
+): Promise<NextResponse> => {
+  const user = (req as AuthenticatedRequest).user!;
 
-  if (auth.user.role !== 'STUDENT') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only students can submit answers' } },
-      { status: 403 }
-    );
-  }
-
-  const { id: testId, attemptId } = await params;
+  const { id: testId, attemptId } = await params as { id: string; attemptId: string };
 
   let body: unknown;
   try {
@@ -110,7 +102,7 @@ export async function PATCH(
       );
     }
 
-    if (attempt.studentId !== auth.user.id) {
+    if (attempt.studentId !== user.id) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'This is not your attempt' } },
         { status: 403 }
@@ -133,7 +125,7 @@ export async function PATCH(
     const finalStatus = isExpired ? 'TIMEOUT' : 'COMPLETED';
 
     if (action === 'save_answers' && isExpired) {
-      return await forceSubmitAttempt(attemptId, test, auth.user.id, limitSeconds);
+      return await forceSubmitAttempt(attemptId, test, user.id, limitSeconds);
     }
 
     if (action === 'save_answers') {
@@ -226,13 +218,13 @@ export async function PATCH(
 
       if (allMCQGraded) {
         const existingScore = await tx.testScore.findFirst({
-          where: { batchId: test.batchId, studentId: auth.user.id, testName: test.title },
+          where: { batchId: test.batchId, studentId: user.id, testName: test.title },
         });
         if (!existingScore) {
           await tx.testScore.create({
             data: {
               batchId: test.batchId,
-              studentId: auth.user.id,
+              studentId: user.id,
               testName: test.title,
               score: score,
               maxScore: test.totalMarks,
@@ -254,7 +246,7 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+});
 
 async function forceSubmitAttempt(attemptId: string, test: any, studentId: string, limitSeconds: number) {
   try {
