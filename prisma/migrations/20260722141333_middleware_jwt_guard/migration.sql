@@ -534,6 +534,9 @@ CREATE UNIQUE INDEX "test_answers_attemptId_questionId_key" ON "test_answers"("a
 -- CreateIndex
 CREATE UNIQUE INDEX "assignment_submissions_assignmentId_studentId_key" ON "assignment_submissions"("assignmentId", "studentId");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "test_attempts_testId_studentId_key" ON "test_attempts"("testId", "studentId");
+
 -- AddForeignKey
 ALTER TABLE "parent_student_links" ADD CONSTRAINT "parent_student_links_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
