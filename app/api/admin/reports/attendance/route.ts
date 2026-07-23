@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     const studentAttendance = new Map<string, { name: string; phone: string; sessions: number; present: number }>();
     for (const r of attendanceRecords) {
       if (!studentAttendance.has(r.studentId)) {
-        studentAttendance.set(r.studentId, { name: r.student.name, phone: r.student.phone, sessions: 0, present: 0 });
+        studentAttendance.set(r.studentId, { name: r.student.name, phone: r.student.phone ?? '', sessions: 0, present: 0 });
       }
       const entry = studentAttendance.get(r.studentId)!;
       entry.sessions++;

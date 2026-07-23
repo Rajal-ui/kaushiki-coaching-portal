@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendOtpSchema } from '@/lib/validators/auth';
-import { generateOtp, hashOtp, buildOtpRedisKey, buildRateLimitRedisKey, OTP_TTL_SECONDS, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SECONDS } from '@/lib/auth/otp';
+import { generateOtp, hashOtp, buildOtpRedisKey, buildRateLimitRedisKey, detectChannel, OTP_TTL_SECONDS, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_SECONDS } from '@/lib/auth/otp';
 import { redis } from '@/lib/redis';
 import { enqueueMockSms } from '@/lib/sms/mock';
+import { sendEmailWithFallback, isEmailConfigured } from '@/lib/email';
+import { otpEmailHtml, otpEmailText } from '@/lib/email/otp-template';
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -23,10 +25,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { phone } = parsed.data;
+  const { phone, email } = parsed.data;
+  const identifier = phone ?? email!;
+  const channel = detectChannel(identifier);
 
   try {
-    const rateLimitKey = buildRateLimitRedisKey(phone);
+    const rateLimitKey = buildRateLimitRedisKey(identifier, channel);
     const currentCount = await redis.incr(rateLimitKey);
     if (currentCount === 1) {
       await redis.expire(rateLimitKey, RATE_LIMIT_WINDOW_SECONDS);
@@ -41,11 +45,27 @@ export async function POST(req: NextRequest) {
 
     const otp = generateOtp();
     const hashedOtp = await hashOtp(otp);
-    const otpKey = buildOtpRedisKey(phone);
+    const otpKey = buildOtpRedisKey(identifier, channel);
 
-    await redis.set(otpKey, JSON.stringify({ hash: hashedOtp, attempts: 0 }), 'EX', OTP_TTL_SECONDS);
+    await redis.set(otpKey, JSON.stringify({ hash: hashedOtp, attempts: 0, channel }), 'EX', OTP_TTL_SECONDS);
 
-    await enqueueMockSms(phone, `Your Kaushiki Classes OTP is: ${otp}. It expires in 5 minutes.`);
+    if (channel === 'email') {
+      if (!isEmailConfigured()) {
+        console.warn(`[Send OTP] Email not configured — logging OTP for ${identifier}: ${otp}`);
+      } else {
+        const result = await sendEmailWithFallback({
+          to: identifier,
+          subject: 'Your Kaushiki Classes Verification Code',
+          html: otpEmailHtml(otp, 'login'),
+          text: otpEmailText(otp, 'login'),
+        });
+        if (!result.success) {
+          console.error('[Send OTP] Email delivery failed:', result.error?.message);
+        }
+      }
+    } else {
+      await enqueueMockSms(identifier, `Your Kaushiki Classes OTP is: ${otp}. It expires in 5 minutes.`);
+    }
 
     return NextResponse.json({ success: true, message: 'OTP sent successfully' });
   } catch (err) {

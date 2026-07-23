@@ -60,13 +60,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await enqueueSms({
-      smsLogId: doubt.id,
-      phone: doubt.batch.faculty.phone,
-      templateId: process.env.MSG91_TEMPLATE_DOUBT_ANSWERED || 'doubt_received',
-      variables: { student_name: auth.user.id },
-      triggerEvent: 'doubt_submitted',
-    });
+    if (doubt.batch.faculty.phone) {
+      await enqueueSms({
+        smsLogId: doubt.id,
+        phone: doubt.batch.faculty.phone,
+        templateId: process.env.MSG91_TEMPLATE_DOUBT_ANSWERED || 'doubt_received',
+        variables: { student_name: auth.user.id },
+        triggerEvent: 'doubt_submitted',
+      });
+    }
 
     await createNotificationForDoubtSubmitted(doubt.id);
 

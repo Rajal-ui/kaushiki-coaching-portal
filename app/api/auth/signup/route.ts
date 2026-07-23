@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { signupSchema } from '@/lib/validators/auth';
-import { verifyOtpHash, buildOtpRedisKey, MAX_ATTEMPTS } from '@/lib/auth/otp';
+import { verifyOtpHash, buildOtpRedisKey, detectChannel, MAX_ATTEMPTS } from '@/lib/auth/otp';
 import { prisma } from '@/lib/db/prisma';
 import { redis } from '@/lib/redis';
 import { signAccessToken, signRefreshToken, generateSessionId, hashRefreshToken } from '@/lib/auth/jwt';
@@ -26,18 +26,30 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, phone, otp, role } = parsed.data;
+  const { name, phone, email, otp, role } = parsed.data;
+  const identifier = phone ?? email!;
+  const channel = detectChannel(identifier);
 
   try {
-    const existingUser = await prisma.user.findUnique({ where: { phone } });
-    if (existingUser) {
-      return NextResponse.json(
-        { error: { code: 'PHONE_EXISTS', message: 'An account with this phone number already exists. Please log in.' } },
-        { status: 409 }
-      );
+    if (channel === 'email') {
+      const existingEmail = await prisma.user.findUnique({ where: { email: identifier } });
+      if (existingEmail) {
+        return NextResponse.json(
+          { error: { code: 'EMAIL_EXISTS', message: 'An account with this email already exists. Please log in.' } },
+          { status: 409 }
+        );
+      }
+    } else {
+      const existingPhone = await prisma.user.findUnique({ where: { phone: identifier } });
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: { code: 'PHONE_EXISTS', message: 'An account with this phone number already exists. Please log in.' } },
+          { status: 409 }
+        );
+      }
     }
 
-    const otpKey = buildOtpRedisKey(phone);
+    const otpKey = buildOtpRedisKey(identifier, channel);
     const stored = await redis.get(otpKey);
     if (!stored) {
       return NextResponse.json(
@@ -68,18 +80,34 @@ export async function POST(req: NextRequest) {
 
     await redis.del(otpKey);
 
-    const passwordHash = await bcrypt.hash(phone.slice(-6), 10);
+    const passwordSource = channel === 'email' ? identifier.slice(-6) : identifier.slice(-6);
+    const passwordHash = await bcrypt.hash(passwordSource, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        phone,
-        passwordHash,
-        role: role || 'STUDENT',
-        status: 'ACTIVE',
-        phoneVerified: true,
-      },
-    });
+    const userData: {
+      name: string;
+      passwordHash: string;
+      role: string;
+      status: string;
+      phoneVerified?: boolean;
+      emailVerified?: boolean;
+      phone?: string;
+      email?: string;
+    } = {
+      name,
+      passwordHash,
+      role: role || 'STUDENT',
+      status: 'ACTIVE',
+    };
+
+    if (channel === 'email') {
+      userData.email = identifier;
+      userData.emailVerified = true;
+    } else {
+      userData.phone = identifier;
+      userData.phoneVerified = true;
+    }
+
+    const user = await prisma.user.create({ data: userData as never });
 
     const sessionId = generateSessionId();
     const accessToken = await signAccessToken(user.id, user.role, sessionId, user.name);

@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
       data.push({
         studentId: e.studentId,
         studentName: user.name,
-        phone: user.phone,
+        phone: user.phone ?? '',
         batchName: batchMap.get(e.batchId) || 'Unknown',
         riskType: 'ATTENDANCE' as const,
         detail: `Attendance ${e.percentage.toFixed(1)}% (${attendanceMap.get(`${e.studentId}:${e.batchId}`)?.present}/${attendanceMap.get(`${e.studentId}:${e.batchId}`)?.total} sessions)`,
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
           data.push({
             studentId,
             studentName: user.name,
-            phone: user.phone,
+            phone: user.phone ?? '',
             batchName: batchMap.get(e.batchId) || 'Unknown',
             riskType: 'SCORES' as const,
             detail: `${e.failCount} consecutive failed tests (score < 40%)`,

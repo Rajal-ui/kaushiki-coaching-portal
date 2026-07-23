@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyOtpSchema } from '@/lib/validators/auth';
-import { verifyOtpHash, buildOtpRedisKey, MAX_ATTEMPTS } from '@/lib/auth/otp';
+import { verifyOtpHash, buildOtpRedisKey, detectChannel, MAX_ATTEMPTS } from '@/lib/auth/otp';
 import { signAccessToken, signRefreshToken, generateSessionId, hashRefreshToken } from '@/lib/auth/jwt';
 import { buildRefreshTokenRedisKey } from '@/lib/auth/otp';
 import { redis } from '@/lib/redis';
@@ -25,10 +25,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { phone, otp } = parsed.data;
+  const { phone, email, otp } = parsed.data;
+  const identifier = phone ?? email!;
+  const channel = detectChannel(identifier);
 
   try {
-    const otpKey = buildOtpRedisKey(phone);
+    const otpKey = buildOtpRedisKey(identifier, channel);
     const stored = await redis.get(otpKey);
     if (!stored) {
       return NextResponse.json(
@@ -60,11 +62,19 @@ export async function POST(req: NextRequest) {
 
     await redis.del(otpKey);
 
-    let user = await prisma.user.findUnique({ where: { phone } });
+    let user;
+    if (channel === 'email') {
+      user = await prisma.user.findUnique({ where: { email: identifier } });
+    } else {
+      user = await prisma.user.findUnique({ where: { phone: identifier } });
+    }
 
     if (!user) {
+      const notFoundMsg = channel === 'email'
+        ? 'No account found with this email address. Please sign up first.'
+        : 'No account found with this phone number. Please sign up first.';
       return NextResponse.json(
-        { error: { code: 'USER_NOT_FOUND', message: 'No account found with this phone number. Please sign up first.' } },
+        { error: { code: 'USER_NOT_FOUND', message: notFoundMsg } },
         { status: 404 }
       );
     }
@@ -77,15 +87,29 @@ export async function POST(req: NextRequest) {
     }
 
     if (user.status === 'PENDING_VERIFICATION') {
+      const updateData: { status: 'ACTIVE'; phoneVerified?: boolean; emailVerified?: boolean } = { status: 'ACTIVE' };
+      if (channel === 'email') {
+        updateData.emailVerified = true;
+      } else {
+        updateData.phoneVerified = true;
+      }
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { status: 'ACTIVE', phoneVerified: true },
+        data: updateData,
       });
-    } else if (!user.phoneVerified) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { phoneVerified: true },
-      });
+    } else {
+      const updateData: { phoneVerified?: boolean; emailVerified?: boolean } = {};
+      if (channel === 'email' && !user.emailVerified) {
+        updateData.emailVerified = true;
+      } else if (channel === 'sms' && !user.phoneVerified) {
+        updateData.phoneVerified = true;
+      }
+      if (Object.keys(updateData).length > 0) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      }
     }
 
     const sessionId = generateSessionId();

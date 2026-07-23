@@ -82,14 +82,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       },
     });
 
-    await enqueueSms({
-      smsLogId: `doubt_${id}`,
-      phone: doubt.student.phone,
-      templateId: process.env.MSG91_TEMPLATE_DOUBT_ANSWERED || 'doubt_answered',
-      variables: { faculty_name: updated.respondedBy?.name || 'Faculty' },
-      triggerEvent: 'doubt_answered',
-      userId: doubt.student.id,
-    });
+    if (doubt.student.phone) {
+      await enqueueSms({
+        smsLogId: `doubt_${id}`,
+        phone: doubt.student.phone,
+        templateId: process.env.MSG91_TEMPLATE_DOUBT_ANSWERED || 'doubt_answered',
+        variables: { faculty_name: updated.respondedBy?.name || 'Faculty' },
+        triggerEvent: 'doubt_answered',
+        userId: doubt.student.id,
+      });
+    }
 
     await createNotificationForDoubtAnswered(id);
 
