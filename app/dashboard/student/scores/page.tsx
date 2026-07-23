@@ -206,7 +206,13 @@ export default function StudentScoresPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                       <XAxis dataKey="date" stroke="#9CA3AF" fontSize={11} />
                       <YAxis domain={[0, 100]} stroke="#9CA3AF" fontSize={11} unit="%" />
-                        <Tooltip formatter={(value: number | string | undefined) => [`${value ?? 0}%`, 'Score']} />
+                       // Line 209 - Fix for LineChart Tooltip
+                      <Tooltip
+                        formatter={(value: any) => {
+                          const numValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+                          return [`${numValue}%`, 'Score'];
+                        }}
+                      />
                       <Line type="monotone" dataKey="percentage" stroke="#2563EB" strokeWidth={3} activeDot={{ r: 8 }} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -222,7 +228,13 @@ export default function StudentScoresPage() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                       <XAxis dataKey="subject" stroke="#9CA3AF" fontSize={11} />
                       <YAxis domain={[0, 100]} stroke="#9CA3AF" fontSize={11} unit="%" />
-                        <Tooltip formatter={(value: number | string | undefined) => [`${value ?? 0}%`, 'Avg Score']} />
+                       // Line 225 - Fix for BarChart Tooltip
+                      <Tooltip
+                        formatter={(value: any) => {
+                          const numValue = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+                          return [`${numValue}%`, 'Avg Score'];
+                        }}
+                      />
                       <Bar dataKey="percentage" fill="#8B5CF6" radius={[4, 4, 0, 0]} maxBarSize={45} />
                     </BarChart>
                   </ResponsiveContainer>
