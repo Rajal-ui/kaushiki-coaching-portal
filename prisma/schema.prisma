@@ -587,6 +587,7 @@ model TestAttempt {
   student   User          @relation("StudentAttempts", fields: [studentId], references: [id])
   answers   TestAnswer[]
 
+  @@unique([testId, studentId])
   @@map("test_attempts")
 }
 
