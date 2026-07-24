@@ -1,14 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const GET = withRole('ADMIN', async (req) => {
   const url = new URL(req.url);
   const start = url.searchParams.get('start');
   const end = url.searchParams.get('end');
@@ -43,15 +37,9 @@ export async function GET(req: NextRequest) {
     console.error('[List Schedule] Error:', err);
     return NextResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch schedule' } }, { status: 500 });
   }
-}
+});
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Admin only' } }, { status: 403 });
-  }
-
+export const POST = withRole('ADMIN', async (req) => {
   try {
     let body: { batchId: string; date: string; startTime: string; endTime: string; note?: string };
     try {
@@ -93,4 +81,4 @@ export async function POST(req: NextRequest) {
     console.error('[Create Schedule] Error:', err);
     return NextResponse.json({ error: { code: 'INTERNAL_ERROR', message: 'Failed to create session' } }, { status: 500 });
   }
-}
+});

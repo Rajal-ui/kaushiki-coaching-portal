@@ -1,21 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 import { updateInquirySchema } from '@/lib/validators/inquiries';
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only admins can update inquiries' } },
-      { status: 403 }
-    );
-  }
-
+export const PATCH = withRole('ADMIN', async (req, { params }) => {
   let body: unknown;
   try {
     body = await req.json();
@@ -60,4 +48,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+});

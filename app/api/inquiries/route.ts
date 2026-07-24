@@ -1,8 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 import { createInquirySchema, inquiryQuerySchema } from '@/lib/validators/inquiries';
 import { getClientIp, checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+
+export const GET = withRole(['ADMIN'], async (req) => {
+  const url = new URL(req.url);
+  const query = Object.fromEntries(url.searchParams.entries());
+  const parsed = inquiryQuerySchema.safeParse(query);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.issues[0].message } },
+      { status: 400 }
+    );
+  }
+
+  const { page, limit, status, trackId, assigneeId } = parsed.data;
+
+  try {
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    if (trackId) where.trackId = trackId;
+    if (assigneeId) where.assigneeId = assigneeId;
+
+    const [inquiries, total] = await Promise.all([
+      prisma.inquiry.findMany({
+        where,
+        include: {
+          assignee: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.inquiry.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      data: inquiries,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    console.error('[List Inquiries] Error:', err);
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch inquiries' } },
+      { status: 500 }
+    );
+  }
+});
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -53,60 +98,6 @@ export async function POST(req: NextRequest) {
     console.error('[Create Inquiry] Error:', err);
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'Failed to submit inquiry' } },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only admins can view inquiries' } },
-      { status: 403 }
-    );
-  }
-
-  const url = new URL(req.url);
-  const query = Object.fromEntries(url.searchParams.entries());
-  const parsed = inquiryQuerySchema.safeParse(query);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: parsed.error.issues[0].message } },
-      { status: 400 }
-    );
-  }
-
-  const { page, limit, status, trackId, assigneeId } = parsed.data;
-
-  try {
-    const where: Record<string, unknown> = {};
-    if (status) where.status = status;
-    if (trackId) where.trackId = trackId;
-    if (assigneeId) where.assigneeId = assigneeId;
-
-    const [inquiries, total] = await Promise.all([
-      prisma.inquiry.findMany({
-        where,
-        include: {
-          assignee: { select: { id: true, name: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.inquiry.count({ where }),
-    ]);
-
-    return NextResponse.json({
-      data: inquiries,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    });
-  } catch (err) {
-    console.error('[List Inquiries] Error:', err);
-    return NextResponse.json(
-      { error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch inquiries' } },
       { status: 500 }
     );
   }

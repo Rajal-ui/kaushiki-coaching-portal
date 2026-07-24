@@ -1,17 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { bulkAttendanceSchema } from '@/lib/validators/attendance';
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty and admins can mark attendance' } },
-      { status: 403 }
-    );
-  }
+export const POST = withRole(['FACULTY', 'ADMIN'], async (req) => {
+  const { user } = req as AuthenticatedRequest;
+  if (!user) return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 });
 
   let body: unknown;
   try {
@@ -34,9 +28,9 @@ export async function POST(req: NextRequest) {
   const { batchId, sessionDate, records } = parsed.data;
 
   try {
-    if (auth.user.role === 'FACULTY') {
+    if (user.role === 'FACULTY') {
       const batch = await prisma.batch.findUnique({ where: { id: batchId }, select: { facultyId: true } });
-      if (!batch || batch.facultyId !== auth.user.id) {
+      if (!batch || batch.facultyId !== user.id) {
         return NextResponse.json(
           { error: { code: 'FORBIDDEN', message: 'Not your batch' } },
           { status: 403 }
@@ -64,7 +58,7 @@ export async function POST(req: NextRequest) {
         if (existing) {
           await tx.attendance.update({
             where: { id: existing.id },
-            data: { present: record.present, markedById: auth.user.id },
+            data: { present: record.present, markedById: user.id },
           });
           updated++;
         } else {
@@ -74,7 +68,7 @@ export async function POST(req: NextRequest) {
               studentId: record.studentId,
               sessionDate: date,
               present: record.present,
-              markedById: auth.user.id,
+              markedById: user.id,
             },
           });
           created++;
@@ -92,4 +86,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

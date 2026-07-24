@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { submitAssignmentSchema } from '@/lib/validators/assignments';
 
-export async function POST(
+export const POST = withRole('STUDENT', async (
   req: NextRequest,
-  { params }: { params: Promise<{ assignmentId: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'STUDENT') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only students can submit assignments' } },
-      { status: 403 }
-    );
-  }
+  { params }: { params: Promise<Record<string, string>> }
+) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   const { assignmentId } = await params;
 
@@ -60,7 +53,7 @@ export async function POST(
 
     const enrolled = await prisma.enrollment.findFirst({
       where: {
-        studentId: auth.user.id,
+        studentId: user.id,
         status: 'ACTIVE',
         batchId: { in: assignment.batches.map(b => b.batchId) },
       },
@@ -74,7 +67,7 @@ export async function POST(
     }
 
     const existing = await prisma.assignmentSubmission.findUnique({
-      where: { assignmentId_studentId: { assignmentId, studentId: auth.user.id } },
+      where: { assignmentId_studentId: { assignmentId, studentId: user.id } },
     });
 
     if (existing) {
@@ -87,7 +80,7 @@ export async function POST(
     const submission = await prisma.assignmentSubmission.create({
       data: {
         assignmentId,
-        studentId: auth.user.id,
+        studentId: user.id,
         submissionText: submissionText || null,
         fileUrls: fileUrls && fileUrls.length > 0 ? fileUrls : undefined,
       },
@@ -104,7 +97,7 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});
 
 export async function GET(
   req: NextRequest,
@@ -131,7 +124,7 @@ export async function GET(
     if (auth.user.role === 'STUDENT') {
       const enrolled = await prisma.enrollment.findFirst({
         where: {
-          studentId: auth.user.id,
+        studentId: auth.user.id,
           status: 'ACTIVE',
           batchId: { in: assignment.batches.map(b => b.batchId) },
         },

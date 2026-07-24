@@ -1,22 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { gradeSubmissionSchema } from '@/lib/validators/assignments';
 import { createNotificationForFeedbackPublished } from '@/lib/notifications';
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ assignmentId: string; submissionId: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty can grade submissions' } },
-      { status: 403 }
-    );
-  }
-
+export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
+  const { user } = req as AuthenticatedRequest;
+  if (!user) return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 });
   const { assignmentId, submissionId } = await params;
 
   let body: unknown;
@@ -52,7 +42,7 @@ export async function PATCH(
       );
     }
 
-    if (auth.user.role === 'FACULTY' && assignment.facultyId !== auth.user.id) {
+    if (user.role === 'FACULTY' && assignment.facultyId !== user.id) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'Not your assignment' } },
         { status: 403 }
@@ -93,4 +83,4 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+});

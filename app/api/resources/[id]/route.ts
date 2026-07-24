@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { updateResourceSchema } from '@/lib/validators/resources';
 
 export async function GET(
@@ -39,20 +39,10 @@ export async function GET(
   }
 }
 
-export async function PATCH(
+export const PATCH = withRole(['FACULTY', 'ADMIN'], async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty and admins can update resources' } },
-      { status: 403 }
-    );
-  }
-
+  { params }: { params: Promise<Record<string, string>> }
+) => {
   const { id } = await params;
 
   let body: unknown;
@@ -123,22 +113,12 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(
+export const DELETE = withRole('ADMIN', async (
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(_req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only admins can delete resources' } },
-      { status: 403 }
-    );
-  }
-
+  { params }: { params: Promise<Record<string, string>> }
+) => {
   const { id } = await params;
 
   try {
@@ -160,4 +140,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});
