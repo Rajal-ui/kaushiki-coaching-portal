@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         });
 
         await enqueueMockSms(
-          payment.enrollment.student.phone,
+          payment.enrollment.student.phone ?? '',
           `Enrollment confirmed for ${payment.enrollment.batch.subject.name}! Welcome to Kaushiki Classes.`
         );
 
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
         });
 
         await enqueueMockSms(
-          payment.enrollment.student.phone,
+          payment.enrollment.student.phone ?? '',
           'Payment failed. Please try again or contact support.'
         );
 

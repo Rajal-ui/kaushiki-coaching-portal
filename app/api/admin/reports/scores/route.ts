@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
     for (const t of testScores) {
       if (!studentScores.has(t.studentId)) {
-        studentScores.set(t.studentId, { name: t.student.name, phone: t.student.phone, tests: [] });
+        studentScores.set(t.studentId, { name: t.student.name, phone: t.student.phone ?? '', tests: [] });
       }
       studentScores.get(t.studentId)!.tests.push({ score: t.score, maxScore: t.maxScore, testDate: t.testDate });
     }

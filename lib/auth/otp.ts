@@ -1,11 +1,22 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import type { OtpChannel } from '@/types';
 
 const OTP_LENGTH = 6;
 const OTP_TTL_SECONDS = 300;
 const MAX_ATTEMPTS = 3;
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_SECONDS = 3600;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isEmail(identifier: string): boolean {
+  return EMAIL_REGEX.test(identifier);
+}
+
+export function detectChannel(identifier: string): OtpChannel {
+  return isEmail(identifier) ? 'email' : 'sms';
+}
 
 export function generateOtp(): string {
   const bytes = crypto.randomBytes(4);
@@ -21,12 +32,14 @@ export async function verifyOtpHash(otp: string, hash: string): Promise<boolean>
   return bcrypt.compare(otp, hash);
 }
 
-export function buildOtpRedisKey(phone: string): string {
-  return `otp:${phone}`;
+export function buildOtpRedisKey(identifier: string, channel?: OtpChannel): string {
+  const ch = channel ?? detectChannel(identifier);
+  return `otp:${ch}:${identifier}`;
 }
 
-export function buildRateLimitRedisKey(phone: string): string {
-  return `otp:ratelimit:${phone}`;
+export function buildRateLimitRedisKey(identifier: string, channel?: OtpChannel): string {
+  const ch = channel ?? detectChannel(identifier);
+  return `otp:ratelimit:${ch}:${identifier}`;
 }
 
 export function buildRefreshTokenRedisKey(sessionId: string): string {

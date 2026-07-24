@@ -96,12 +96,13 @@ enum ResourceType {
 model User {
   id            String        @id @default(cuid())
   name          String
-  phone         String        @unique
+  phone         String?       @unique
   email         String?       @unique
   passwordHash  String
   role          Role
   status        AccountStatus @default(PENDING_VERIFICATION)
   phoneVerified Boolean       @default(false)
+  emailVerified Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

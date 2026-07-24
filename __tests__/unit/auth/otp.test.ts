@@ -1,4 +1,4 @@
-import { generateOtp, hashOtp, verifyOtpHash, OTP_LENGTH, MAX_ATTEMPTS, RATE_LIMIT_MAX } from '@/lib/auth/otp';
+import { generateOtp, hashOtp, verifyOtpHash, isEmail, detectChannel, buildOtpRedisKey, buildRateLimitRedisKey, OTP_LENGTH, MAX_ATTEMPTS, RATE_LIMIT_MAX } from '@/lib/auth/otp';
 
 describe('OTP Generation', () => {
   it('generates a 6-digit OTP', () => {
@@ -54,6 +54,52 @@ describe('OTP Hashing', () => {
     const hash = await hashOtp('111111');
     const isValid = await verifyOtpHash('222222', hash);
     expect(isValid).toBe(false);
+  });
+});
+
+describe('Channel Detection', () => {
+  it('identifies email addresses', () => {
+    expect(isEmail('user@example.com')).toBe(true);
+    expect(isEmail('test.co@domain.org')).toBe(true);
+    expect(isEmail('a+b@domain.com')).toBe(true);
+  });
+
+  it('rejects non-email strings', () => {
+    expect(isEmail('9876543210')).toBe(false);
+    expect(isEmail('+919876543210')).toBe(false);
+    expect(isEmail('hello')).toBe(false);
+    expect(isEmail('')).toBe(false);
+  });
+
+  it('detectChannel returns email for emails', () => {
+    expect(detectChannel('user@example.com')).toBe('email');
+  });
+
+  it('detectChannel returns sms for phone numbers', () => {
+    expect(detectChannel('9876543210')).toBe('sms');
+  });
+});
+
+describe('Redis Key Builders', () => {
+  it('builds SMS OTP key', () => {
+    expect(buildOtpRedisKey('9876543210')).toBe('otp:sms:9876543210');
+  });
+
+  it('builds email OTP key', () => {
+    expect(buildOtpRedisKey('user@example.com')).toBe('otp:email:user@example.com');
+  });
+
+  it('builds key with explicit channel', () => {
+    expect(buildOtpRedisKey('9876543210', 'sms')).toBe('otp:sms:9876543210');
+    expect(buildOtpRedisKey('user@example.com', 'email')).toBe('otp:email:user@example.com');
+  });
+
+  it('builds SMS rate limit key', () => {
+    expect(buildRateLimitRedisKey('9876543210')).toBe('otp:ratelimit:sms:9876543210');
+  });
+
+  it('builds email rate limit key', () => {
+    expect(buildRateLimitRedisKey('user@example.com')).toBe('otp:ratelimit:email:user@example.com');
   });
 });
 
