@@ -3,12 +3,39 @@
  */
 let mockAuthRole = 'STUDENT';
 let mockAuthId = 'student-1';
-jest.mock('@/lib/auth/middleware', () => ({
-  authenticateRequest: jest.fn().mockImplementation(() => ({
+jest.mock('@/lib/auth/middleware', () => {
+  const { NextResponse } = require('next/server');
+  const authenticateRequest = jest.fn().mockImplementation(() => ({
     user: { id: mockAuthId, role: mockAuthRole, sessionId: 'sess-1' },
-  })),
-  getTokenFromRequest: jest.fn().mockReturnValue('mock-token'),
-}));
+  }));
+  return {
+    authenticateRequest,
+    getTokenFromRequest: jest.fn().mockReturnValue('mock-token'),
+    withRole: jest.fn().mockImplementation((roles: string | string[], handler: (...args: any[]) => any) => {
+      const allowedRoles = Array.isArray(roles) ? roles : [roles];
+      if (handler.length > 1) {
+        return async (req: any, ctx: any) => {
+          const result = await authenticateRequest(req);
+          if (result instanceof NextResponse) return result;
+          req.user = result.user;
+          if (allowedRoles.length > 0 && !allowedRoles.includes(result.user.role)) {
+            return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Insufficient permissions' } }, { status: 403 });
+          }
+          return handler(req, ctx);
+        };
+      }
+      return async (req: any) => {
+        const result = await authenticateRequest(req);
+        if (result instanceof NextResponse) return result;
+        req.user = result.user;
+        if (allowedRoles.length > 0 && !allowedRoles.includes(result.user.role)) {
+          return NextResponse.json({ error: { code: 'FORBIDDEN', message: 'Insufficient permissions' } }, { status: 403 });
+        }
+        return handler(req);
+      };
+    }),
+  };
+});
 
 let paymentData: { gatewayOrderId: string | null; status: string; id: string; enrollmentId: string; amount: number } | null = null;
 let enrollmentData: { id: string; studentId: string; batchId: string; status: string } | null = null;
