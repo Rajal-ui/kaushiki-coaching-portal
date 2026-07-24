@@ -4,7 +4,8 @@ import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 
 export const GET = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params;  // ← Add this line
+    // ... rest of code
     const batch = await prisma.batch.findUnique({
       where: { id },
       include: {

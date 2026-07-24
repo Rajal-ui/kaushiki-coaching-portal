@@ -13,7 +13,7 @@ export const PATCH = withRole('ADMIN', async (req, { params }) => {
       { status: 400 }
     );
   }
-
+  const { id } = await params;
   const parsed = updateInquirySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -23,7 +23,6 @@ export const PATCH = withRole('ADMIN', async (req, { params }) => {
   }
 
   try {
-    const { id } = await params;
     const existing = await prisma.inquiry.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json(

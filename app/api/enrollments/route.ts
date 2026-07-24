@@ -4,7 +4,7 @@ import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/
 import { createEnrollmentSchema, listEnrollmentsSchema } from '@/lib/validators/enrollments';
 import { createRazorpayOrder } from '@/lib/razorpay';
 
-export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest) => {
+export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest, { params }) => {
   const user = (req as AuthenticatedRequest).user!;
 
   let body: unknown;

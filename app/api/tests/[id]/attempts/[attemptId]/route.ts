@@ -64,8 +64,8 @@ export const PATCH = withRole('STUDENT', async (
   { params }: { params: Promise<Record<string, string>> }
 ): Promise<NextResponse> => {
   const user = (req as AuthenticatedRequest).user!;
-
-  const { id: testId, attemptId } = await params as { id: string; attemptId: string };
+  
+  const { id: testId, attemptId } = await params;
 
   let body: unknown;
   try {
