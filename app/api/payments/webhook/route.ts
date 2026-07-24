@@ -79,14 +79,19 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        const seatUpdate = await tx.batch.updateMany({
+          where: { id: payment.enrollment.batchId, seatsFilled: { lt: payment.enrollment.batch.capacity } },
+          data: { seatsFilled: { increment: 1 } },
+        });
+
+        if (seatUpdate.count === 0) {
+          console.error(`[Webhook] Batch ${payment.enrollment.batchId} is at capacity, cannot enroll student ${payment.enrollment.studentId}`);
+          return;
+        }
+
         await tx.enrollment.update({
           where: { id: payment.enrollmentId },
           data: { status: 'ACTIVE' },
-        });
-
-        await tx.batch.update({
-          where: { id: payment.enrollment.batchId },
-          data: { seatsFilled: { increment: 1 } },
         });
 
         await enqueueMockSms(
