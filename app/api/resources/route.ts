@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { createResourceSchema, resourceQuerySchema } from '@/lib/validators/resources';
 
 export async function GET(req: NextRequest) {
@@ -98,16 +98,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty and admins can create resources' } },
-      { status: 403 }
-    );
-  }
+export const POST = withRole(['FACULTY', 'ADMIN'], async (req: NextRequest) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   let body: unknown;
   try {
@@ -156,7 +148,7 @@ export async function POST(req: NextRequest) {
         description,
         fileUrl,
         type,
-        uploadedById: auth.user.id,
+        uploadedById: user.id,
         tracks: trackIds?.length
           ? { create: trackIds.map(trackId => ({ trackId })) }
           : undefined,
@@ -179,4 +171,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

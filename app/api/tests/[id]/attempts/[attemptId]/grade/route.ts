@@ -1,22 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { manualGradeSchema } from '@/lib/validators/tests';
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string; attemptId: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only faculty and admins can grade subjective questions' } },
-      { status: 403 }
-    );
-  }
-
+export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
+  const { user } = req as AuthenticatedRequest;
+  if (!user) return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 });
   const { id: testId, attemptId } = await params;
 
   let body: unknown;
@@ -56,9 +45,9 @@ export async function PATCH(
 
     const { grades, globalFeedback } = parsed.data;
 
-    if (auth.user.role === 'FACULTY') {
+    if (user.role === 'FACULTY') {
       const batch = await prisma.batch.findUnique({ where: { id: test.batchId }, select: { facultyId: true } });
-      if (test.facultyId !== auth.user.id && batch?.facultyId !== auth.user.id) {
+      if (test.facultyId !== user.id && batch?.facultyId !== user.id) {
         return NextResponse.json(
           { error: { code: 'FORBIDDEN', message: 'You do not have grading permissions for this batch' } },
           { status: 403 }
@@ -153,4 +142,4 @@ export async function PATCH(
       { status: 400 }
     );
   }
-}
+});

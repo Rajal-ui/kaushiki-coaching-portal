@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/auth/middleware';
 import { questionsBulkSchema } from '@/lib/validators/tests';
 
-export async function POST(
+export const POST = withRole(['FACULTY', 'ADMIN'], async (
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-
-  if (auth.user.role !== 'FACULTY' && auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Access denied' } },
-      { status: 403 }
-    );
-  }
+  { params }: { params: Promise<Record<string, string>> }
+) => {
+  const user = (req as AuthenticatedRequest).user!;
 
   const { id } = await params;
 
@@ -50,7 +42,7 @@ export async function POST(
       );
     }
 
-    if (auth.user.role === 'FACULTY' && test.facultyId !== auth.user.id) {
+    if (user.role === 'FACULTY' && test.facultyId !== user.id) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'You do not own this test' } },
         { status: 403 }
@@ -101,7 +93,7 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});
 
 export async function GET(
   req: NextRequest,

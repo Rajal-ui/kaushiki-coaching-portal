@@ -1,19 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
+import { withRole } from '@/lib/auth/middleware';
 import { redis } from '@/lib/redis';
 import { sendTransactionalSms } from '@/lib/sms/msg91';
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await authenticateRequest(req as AuthenticatedRequest);
-  if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only admins can retry SMS' } },
-      { status: 403 }
-    );
-  }
-
+export const POST = withRole('ADMIN', async (req, { params }) => {
   const { id } = await params;
 
   try {
@@ -57,4 +48,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       { status: 500 }
     );
   }
-}
+});
