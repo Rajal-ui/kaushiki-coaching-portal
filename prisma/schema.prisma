@@ -86,6 +86,12 @@ enum SmsStatus {
   FAILED
 }
 
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 enum ResourceType {
   NOTES
   PRACTICE_PAPERS
@@ -118,6 +124,7 @@ model User {
   testScores            TestScore[]
   assignedInquiries     Inquiry[]               @relation("AssignedInquiries")
   smsLogs               SmsLog[]
+  auditLogs             AuditLog[]
   adminEnrollments      Enrollment[]            @relation("AdminEnrollments")
   notifications         Notification[]
   createdTests          Test[]                  @relation("FacultyTests")
@@ -579,52 +586,52 @@ model TestAttempt {
   startTime DateTime      @default(now())
   endTime   DateTime?
   status    AttemptStatus @default(STARTED)
-  score     Int?          // Total graded score
-  feedback  String?       // Faculty global feedback
+  score     Int? // Total graded score
+  feedback  String? // Faculty global feedback
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
-  test      Test          @relation(fields: [testId], references: [id], onDelete: Cascade)
-  student   User          @relation("StudentAttempts", fields: [studentId], references: [id])
-  answers   TestAnswer[]
+  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student User         @relation("StudentAttempts", fields: [studentId], references: [id])
+  answers TestAnswer[]
 
   @@unique([testId, studentId])
   @@map("test_attempts")
 }
 
 model TestAnswer {
-  id               String      @id @default(cuid())
+  id               String    @id @default(cuid())
   attemptId        String
   questionId       String
-  selectedOption   String?     // For MCQ
-  subjectiveAnswer String?     // For Subjective
-  marksObtained    Int?        // Null if subjective and not graded
-  isGraded         Boolean     @default(false)
-  feedback         String?     // Faculty question-level feedback
+  selectedOption   String? // For MCQ
+  subjectiveAnswer String? // For Subjective
+  marksObtained    Int? // Null if subjective and not graded
+  isGraded         Boolean   @default(false)
+  feedback         String? // Faculty question-level feedback
   gradedAt         DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  attempt          TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question         Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attempt  TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
   @@map("test_answers")
 }
 
 model Assignment {
-  id           String         @id @default(cuid())
+  id           String   @id @default(cuid())
   title        String
-  instructions String         // Rich-text / markdown instructions
+  instructions String // Rich-text / markdown instructions
   dueDate      DateTime
   facultyId    String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  faculty      User               @relation("FacultyAssignments", fields: [facultyId], references: [id])
-  batches      AssignmentBatch[]
-  submissions  AssignmentSubmission[]
-  resources    Json?              // Array of { name: string, url: string }
+  faculty     User                   @relation("FacultyAssignments", fields: [facultyId], references: [id])
+  batches     AssignmentBatch[]
+  submissions AssignmentSubmission[]
+  resources   Json? // Array of { name: string, url: string }
 
   @@map("assignments")
 }
@@ -641,15 +648,15 @@ model AssignmentBatch {
 }
 
 model AssignmentSubmission {
-  id                String    @id @default(cuid())
-  assignmentId      String
-  studentId         String
-  submissionText    String?   // Rich-text student response
-  fileUrls          Json?     // Array of { name: string, url: string }
-  submittedAt       DateTime  @default(now())
-  grade             Int?      // Score
-  feedback          String?   // Markdown feedback
-  feedbackPublished Boolean   @default(false)
+  id                  String    @id @default(cuid())
+  assignmentId        String
+  studentId           String
+  submissionText      String? // Rich-text student response
+  fileUrls            Json? // Array of { name: string, url: string }
+  submittedAt         DateTime  @default(now())
+  grade               Int? // Score
+  feedback            String? // Markdown feedback
+  feedbackPublished   Boolean   @default(false)
   feedbackPublishedAt DateTime?
 
   assignment Assignment @relation(fields: [assignmentId], references: [id])
@@ -657,4 +664,40 @@ model AssignmentSubmission {
 
   @@unique([assignmentId, studentId])
   @@map("assignment_submissions")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String?
+  entityId   String?
+  userId     String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model EmailLog {
+  id               String      @id @default(cuid())
+  recipient        String
+  subject          String?
+  template         String?
+  status           EmailStatus @default(PENDING)
+  errorMessage     String?
+  providerResponse Json?
+  sentAt           DateTime?
+  createdAt        DateTime    @default(now())
+
+  @@index([recipient])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_logs")
 }
