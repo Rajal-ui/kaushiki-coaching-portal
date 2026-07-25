@@ -211,7 +211,8 @@ describe('Enrollment Flow', () => {
 
     mockPrisma.payment.findFirst.mockImplementation(() => ({
       ...paymentData,
-      enrollment: { ...enrollmentData, batch: { id: 'batch-1', subject: { name: 'Mathematics' } }, student: { id: 'student-1', name: 'Alice', phone: '9876543210' } },
+      enrollment: { ...enrollmentData, batch: { id: 'batch-1', subject: { name: 'Mathematics' }, schedule: 'Mon-Fri 4PM' }, student: { id: 'student-1', name: 'Alice', phone: '9876543210', email: 'alice@test.com' } },
+      payer: { id: 'student-1', name: 'Alice', email: 'alice@test.com' },
     }));
 
     mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => Promise<void>) => {
