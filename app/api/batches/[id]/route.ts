@@ -1,7 +1,35 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { withRole } from '@/lib/auth/middleware';
 import { updateBatchSchema } from '@/lib/validators/batches';
+
+export const GET = withRole(['ADMIN', 'FACULTY'], async (req, ctx) => {
+  try {
+    const { id } = await ctx.params;
+    const batch = await prisma.batch.findUnique({
+      where: { id },
+      include: {
+        subject: { select: { id: true, name: true, track: { select: { name: true } } } },
+        faculty: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!batch) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Batch not found' } },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ data: batch });
+  } catch (err) {
+    console.error('[Get Batch] Error:', err);
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch batch' } },
+      { status: 500 }
+    );
+  }
+});
 
 export const PATCH = withRole('ADMIN', async (req, { params }) => {
   let body: unknown;
