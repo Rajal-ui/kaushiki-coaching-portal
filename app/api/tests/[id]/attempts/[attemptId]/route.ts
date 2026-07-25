@@ -124,6 +124,11 @@ export const PATCH = withRole('STUDENT', async (
     const isExpired = elapsedSeconds > limitSeconds + 10;
     const finalStatus = isExpired ? 'TIMEOUT' : 'COMPLETED';
 
+    // Reject manual submit after timer expired (auto-submit handles late submissions)
+    if (action === 'submit' && isExpired) {
+      return await forceSubmitAttempt(attemptId, test, user.id, limitSeconds);
+    }
+
     if (action === 'save_answers' && isExpired) {
       return await forceSubmitAttempt(attemptId, test, user.id, limitSeconds);
     }

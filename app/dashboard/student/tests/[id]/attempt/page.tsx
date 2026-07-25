@@ -55,6 +55,7 @@ export default function StudentAttemptPage({ params: paramsPromise }: { params: 
   const remainingRef = useRef<number>(0);
   const attemptRef = useRef<Attempt | null>(null);
   const answersRef = useRef(answers);
+  const startTimeRef = useRef<number>(0); // server start time in epoch ms
 
   // Keep answersRef in sync
   useEffect(() => {
@@ -97,6 +98,7 @@ export default function StudentAttemptPage({ params: paramsPromise }: { params: 
         const elapsed = Math.floor((Date.now() - new Date(attemptJson.startTime).getTime()) / 1000);
         const rem = Math.max(0, testJson.timeLimit * 60 - elapsed);
         remainingRef.current = rem;
+        startTimeRef.current = new Date(attemptJson.startTime).getTime();
         setRemainingSeconds(rem);
 
         // 5. Pre-populate answers from saved state
@@ -111,12 +113,15 @@ export default function StudentAttemptPage({ params: paramsPromise }: { params: 
         setAnswers(initialAnswers);
         answersRef.current = initialAnswers;
 
-        // 6. Start stable countdown — single interval registered once
+        // 6. Start stable countdown — uses wall-clock drift correction
         if (rem > 0) {
           timerRef.current = setInterval(() => {
-            remainingRef.current -= 1;
-            setRemainingSeconds(remainingRef.current);
-            if (remainingRef.current <= 0) {
+            // Drift-corrected: always compute from real elapsed time
+            const realElapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+            const realRemaining = Math.max(0, testJson.timeLimit * 60 - realElapsed);
+            remainingRef.current = realRemaining;
+            setRemainingSeconds(realRemaining);
+            if (realRemaining <= 0) {
               clearInterval(timerRef.current!);
               timerRef.current = null;
               triggerAutoSubmit();
@@ -278,6 +283,14 @@ export default function StudentAttemptPage({ params: paramsPromise }: { params: 
               <p className="text-gray-500 text-sm mt-2">Your answers are being automatically submitted…</p>
               <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mt-4" />
             </div>
+          </div>
+        )}
+
+        {/* Low-time warning (shown 60s before expiry) */}
+        {remainingSeconds !== null && remainingSeconds > 0 && remainingSeconds <= 60 && !autoSubmitBanner && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
+            <AlertTriangle className="w-5 h-5" />
+            <span className="font-bold text-sm">Less than 1 minute left — your test will auto-submit soon!</span>
           </div>
         )}
 
