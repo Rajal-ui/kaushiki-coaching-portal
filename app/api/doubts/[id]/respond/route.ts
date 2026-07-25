@@ -4,6 +4,8 @@ import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { respondDoubtSchema } from '@/lib/validators/doubts';
 import { enqueueSms } from '@/lib/sms/queue';
 import { createNotificationForDoubtAnswered } from '@/lib/notifications';
+import { sendEmail } from '@/lib/email';
+import { doubtAnsweredStudentTemplate } from '@/lib/email/doubt-templates';
 
 export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
   const { id } = await params;
@@ -33,8 +35,8 @@ export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
     const doubt = await prisma.doubtQuery.findUnique({
       where: { id },
       include: {
-        batch: { select: { facultyId: true } },
-        student: { select: { id: true, phone: true, name: true } },
+        batch: { select: { facultyId: true, subject: { select: { name: true } } } },
+        student: { select: { id: true, phone: true, name: true, email: true } },
       },
     });
 
@@ -86,6 +88,22 @@ export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
     }
 
     await createNotificationForDoubtAnswered(id);
+
+    if (doubt.student.email) {
+      const template = doubtAnsweredStudentTemplate({
+        studentName: doubt.student.name,
+        subject: doubt.batch.subject.name,
+        questionText: doubt.questionText,
+        responseText,
+        facultyName: updated.respondedBy?.name || 'Faculty',
+      });
+      sendEmail({
+        to: doubt.student.email,
+        subject: `Your doubt in ${doubt.batch.subject.name} has been answered`,
+        html: template.html,
+        text: template.text,
+      }).catch(() => {});
+    }
 
     return NextResponse.json(updated);
   } catch (err) {
