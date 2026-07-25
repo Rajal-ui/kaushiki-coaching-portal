@@ -72,16 +72,42 @@ jest.mock('@/lib/redis', () => {
   return { redis: mockRedis };
 });
 
+const mockSendEmailWithFallback = jest.fn().mockResolvedValue({ success: true, data: { id: 'msg-1', provider: 'resend' } });
+const mockIsEmailConfigured = jest.fn().mockReturnValue(true);
+jest.mock('@/lib/email', () => ({
+  sendEmailWithFallback: (...args: any[]) => mockSendEmailWithFallback(...args),
+  isEmailConfigured: () => mockIsEmailConfigured(),
+}));
+
+jest.mock('@/lib/email/inquiry-templates', () => ({
+  inquiryConfirmationHtml: jest.fn().mockReturnValue('<html>confirmation</html>'),
+  inquiryConfirmationText: jest.fn().mockReturnValue('confirmation text'),
+  adminAlertHtml: jest.fn().mockReturnValue('<html>alert</html>'),
+  adminAlertText: jest.fn().mockReturnValue('alert text'),
+}));
+
+const mockCreateNotificationForInquiryReceived = jest.fn().mockResolvedValue(undefined);
+jest.mock('@/lib/notifications', () => ({
+  createNotificationForInquiryReceived: (...args: any[]) => mockCreateNotificationForInquiryReceived(...args),
+}));
+
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {
     inquiry: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn() },
+    track: { findUnique: jest.fn() },
   },
 }));
 
 const { prisma } = require('@/lib/db/prisma');
 
 describe('Inquiry API', () => {
-  beforeEach(() => { jest.clearAllMocks(); mockAuthRole = 'ADMIN'; require('@/lib/redis').redis.__clearStore?.(); });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAuthRole = 'ADMIN';
+    require('@/lib/redis').redis.__clearStore?.();
+    mockSendEmailWithFallback.mockResolvedValue({ success: true, data: { id: 'msg-1', provider: 'resend' } });
+    mockIsEmailConfigured.mockReturnValue(true);
+  });
 
   it('rejects inquiry with honeypot field filled', async () => {
     const { POST } = await import('@/app/api/inquiries/route');
@@ -121,7 +147,7 @@ describe('Inquiry API', () => {
 
   it('allows inquiry creation with valid data', async () => {
     const { POST } = await import('@/app/api/inquiries/route');
-    prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW' });
+    prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
 
     const req = new Request('http://localhost/api/inquiries', {
       method: 'POST',
@@ -132,6 +158,105 @@ describe('Inquiry API', () => {
     expect(res.status).toBe(201);
     const json = await res.json();
     expect(json.id).toBe('inq-1');
+  });
+
+  it('sends admin alert email on inquiry creation', async () => {
+    const { POST } = await import('@/app/api/inquiries/route');
+    prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
+
+    const req = new Request('http://localhost/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSendEmailWithFallback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'kaushikiclasses@klnbs.in',
+        subject: expect.stringContaining('New Inquiry'),
+      })
+    );
+  });
+
+  it('sends confirmation email to inquirer when email is provided', async () => {
+    const { POST } = await import('@/app/api/inquiries/route');
+    prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', email: 'john@example.com', message: 'I want to enroll', status: 'NEW', assignee: null });
+
+    const req = new Request('http://localhost/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'John', phone: '9876543210', email: 'john@example.com', message: 'I want to enroll' }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSendEmailWithFallback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'john@example.com',
+        subject: expect.stringContaining('Thank you'),
+      })
+    );
+  });
+
+  it('does not send confirmation email when email is not provided', async () => {
+    const { POST } = await import('@/app/api/inquiries/route');
+    prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
+
+    const req = new Request('http://localhost/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    const confirmationCalls = mockSendEmailWithFallback.mock.calls.filter(
+      (call: any[]) => call[0].subject?.includes('Thank you')
+    );
+    expect(confirmationCalls).toHaveLength(0);
+  });
+
+  it('creates in-app notification for admins on inquiry creation', async () => {
+    const { POST } = await import('@/app/api/inquiries/route');
+    prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
+
+    const req = new Request('http://localhost/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockCreateNotificationForInquiryReceived).toHaveBeenCalledWith('inq-1');
+  });
+
+  it('skips emails when email is not configured', async () => {
+    mockIsEmailConfigured.mockReturnValue(false);
+    const { POST } = await import('@/app/api/inquiries/route');
+    prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
+
+    const req = new Request('http://localhost/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockSendEmailWithFallback).not.toHaveBeenCalled();
   });
 
   it('allows admin to list inquiries with pagination', async () => {

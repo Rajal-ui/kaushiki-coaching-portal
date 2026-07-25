@@ -243,6 +243,36 @@ export async function createNotificationForRecordingPublished(recordingId: strin
   await Promise.all(notifications);
 }
 
+export async function createNotificationForInquiryReceived(inquiryId: string) {
+  const inquiry = await prisma.inquiry.findUnique({
+    where: { id: inquiryId },
+    include: { assignee: { select: { id: true } } },
+  });
+  if (!inquiry) return;
+
+  const adminUsers = await prisma.user.findMany({
+    where: { role: 'ADMIN', status: 'ACTIVE' },
+    select: { id: true },
+  });
+
+  const trackName = inquiry.trackId
+    ? (await prisma.track.findUnique({ where: { id: inquiry.trackId }, select: { name: true } }))?.name
+    : null;
+
+  const trackLabel = trackName ? ` for ${trackName}` : '';
+  const notifications = adminUsers.map((admin) =>
+    createNotification({
+      userId: admin.id,
+      type: 'INQUIRY_RECEIVED',
+      title: 'New Inquiry',
+      message: `New inquiry from ${inquiry.name} (${inquiry.phone})${trackLabel}.`,
+      link: '/dashboard/admin/inquiries',
+    })
+  );
+
+  await Promise.all(notifications);
+}
+
 export async function createNotificationForLinkApproved(linkId: string, status: string) {
   const link = await prisma.parentStudentLink.findUnique({
     where: { id: linkId },
