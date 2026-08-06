@@ -3,8 +3,6 @@ import { prisma } from '@/lib/db/prisma';
 import { withRole } from '@/lib/auth/middleware';
 import { updateBatchSchema } from '@/lib/validators/batches';
 
-<<<<<<< HEAD
-=======
 export const GET = withRole(['ADMIN', 'FACULTY'], async (req, ctx) => {
   try {
     const { id } = await ctx.params;
@@ -33,7 +31,7 @@ export const GET = withRole(['ADMIN', 'FACULTY'], async (req, ctx) => {
   }
 });
 
->>>>>>> 4bae2a3df9fb0ba09bea05541bfce1988bc6864a
+
 export const PATCH = withRole('ADMIN', async (req, { params }) => {
   let body: unknown;
   try {
