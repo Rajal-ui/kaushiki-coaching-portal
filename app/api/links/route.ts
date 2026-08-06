@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { createLinkSchema } from '@/lib/validators/links';
+import { randomInt } from 'crypto';
+
+function generatePin(): string {
+  return randomInt(100000, 999999).toString();
+}
 
 export async function POST(req: NextRequest) {
   const auth = await authenticateRequest(req as AuthenticatedRequest);
@@ -64,11 +69,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const pin = generatePin();
+
     const link = await prisma.parentStudentLink.create({
-      data: { parentId, studentId },
+      data: { parentId, studentId, pin },
     });
 
-    return NextResponse.json(link, { status: 201 });
+    return NextResponse.json({
+      id: link.id,
+      status: link.status,
+      pin,
+      message: 'Link request created. Share this PIN with the student for verification.',
+    }, { status: 201 });
   } catch (err) {
     console.error('[Create Link] Error:', err);
     return NextResponse.json(

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ChevronLeft, FileText, Calendar, Clock, User, BookOpen, Download, Send, CheckCircle, Star, AlertCircle } from 'lucide-react';
+import { Loader2, ChevronLeft, FileText, Calendar, Clock, User, BookOpen, Download, Send, CheckCircle, Star, AlertCircle, Upload, X } from 'lucide-react';
 
 interface AssignmentDetail {
   id: string;
@@ -24,6 +24,16 @@ interface AssignmentDetail {
   } | null;
 }
 
+interface UploadingFile {
+  id: string;
+  file: File;
+  name: string;
+  progress: number;
+  status: 'uploading' | 'done' | 'error';
+  url?: string;
+  error?: string;
+}
+
 export default function StudentAssignmentDetailPage({ params }: { params: Promise<{ assignmentId: string }> }) {
   const { assignmentId } = use(params);
   const router = useRouter();
@@ -33,12 +43,12 @@ export default function StudentAssignmentDetailPage({ params }: { params: Promis
   const [assignment, setAssignment] = useState<AssignmentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [submissionText, setSubmissionText] = useState('');
-  const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
-  const [newFileName, setNewFileName] = useState('');
-  const [newFileUrl, setNewFileUrl] = useState('');
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitTime, setSubmitTime] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!token) { setLoading(false); return; }
@@ -55,23 +65,77 @@ export default function StudentAssignmentDetailPage({ params }: { params: Promis
       .finally(() => setLoading(false));
   }, [token]);
 
-  function addFile() {
-    if (!newFileName.trim() || !newFileUrl.trim()) return;
-    setFiles(prev => [...prev, { name: newFileName.trim(), url: newFileUrl.trim() }]);
-    setNewFileName('');
-    setNewFileUrl('');
+  const uploadFile = useCallback(async (file: File) => {
+    const id = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const uploading: UploadingFile = { id, file, name: file.name, progress: 0, status: 'uploading' };
+    setUploadingFiles(prev => [...prev, uploading]);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/uploads', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || 'Upload failed');
+      }
+
+      const result = await res.json();
+      setUploadingFiles(prev => prev.map(f =>
+        f.id === id ? { ...f, progress: 100, status: 'done', url: result.url, name: result.name } : f
+      ));
+    } catch (err) {
+      setUploadingFiles(prev => prev.map(f =>
+        f.id === id ? { ...f, status: 'error', error: err instanceof Error ? err.message : 'Upload failed' } : f
+      ));
+    }
+  }, [token]);
+
+  function handleFiles(files: FileList | File[]) {
+    Array.from(files).forEach(file => uploadFile(file));
   }
 
-  function removeFile(idx: number) {
-    setFiles(prev => prev.filter((_, i) => i !== idx));
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+  }
+
+  function removeFile(id: string) {
+    setUploadingFiles(prev => prev.filter(f => f.id !== id));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!submissionText.trim() && files.length === 0) {
+    if (!submissionText.trim() && uploadingFiles.length === 0) {
       alert('Please provide text or upload at least one file.');
       return;
     }
+
+    const completedFiles = uploadingFiles.filter(f => f.status === 'done' && f.url);
+    if (uploadingFiles.some(f => f.status === 'uploading')) {
+      alert('Please wait for all files to finish uploading.');
+      return;
+    }
+    if (uploadingFiles.some(f => f.status === 'error')) {
+      if (!confirm('Some files failed to upload. Submit anyway?')) return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch(`/api/assignments/${assignmentId}/submissions`, {
@@ -79,7 +143,7 @@ export default function StudentAssignmentDetailPage({ params }: { params: Promis
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           submissionText: submissionText.trim() || undefined,
-          fileUrls: files.length > 0 ? files : undefined,
+          fileUrls: completedFiles.length > 0 ? completedFiles.map(f => ({ name: f.name, url: f.url! })) : undefined,
         }),
       });
       if (!res.ok) {
@@ -196,22 +260,40 @@ export default function StudentAssignmentDetailPage({ params }: { params: Promis
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Upload Files (optional)</label>
-            <div className="flex gap-2 mb-2">
-              <input value={newFileName} onChange={e => setNewFileName(e.target.value)} placeholder="File name"
-                className="flex-1 h-10 px-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 outline-none text-sm" />
-              <input value={newFileUrl} onChange={e => setNewFileUrl(e.target.value)} placeholder="File URL"
-                className="flex-1 h-10 px-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 outline-none text-sm" />
-              <button type="button" onClick={addFile} disabled={!newFileName.trim() || !newFileUrl.trim()}
-                className="h-10 px-4 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition-colors">Add</button>
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${isDragOver ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}`}
+            >
+              <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-600 font-medium">Drop files here or click to browse</p>
+              <p className="text-xs text-gray-400 mt-1">PDF, images, documents, or videos up to 50MB each</p>
             </div>
-            {files.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-1.5 mb-1">
-                <FileText className="w-4 h-4 text-primary" /> <span className="font-medium">{f.name}</span>
-                <span className="text-xs text-gray-400 truncate flex-1">{f.url}</span>
-                <button type="button" onClick={() => removeFile(i)} className="text-error hover:text-red-700 text-xs font-medium">Remove</button>
-              </div>
-            ))}
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => e.target.files && handleFiles(e.target.files)} />
           </div>
+
+          {uploadingFiles.length > 0 && (
+            <div className="space-y-2">
+              {uploadingFiles.map(f => (
+                <div key={f.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${f.status === 'error' ? 'bg-red-50 border border-red-200' : f.status === 'done' ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'}`}>
+                  <FileText className={`w-4 h-4 shrink-0 ${f.status === 'error' ? 'text-red-500' : f.status === 'done' ? 'text-green-500' : 'text-primary'}`} />
+                  <span className="font-medium text-gray-700 truncate flex-1">{f.name}</span>
+                  {f.status === 'uploading' && (
+                    <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: '60%' }} />
+                    </div>
+                  )}
+                  {f.status === 'done' && <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />}
+                  {f.status === 'error' && <span className="text-xs text-red-500 shrink-0">{f.error}</span>}
+                  <button type="button" onClick={() => removeFile(f.id)} className="text-gray-400 hover:text-red-500 shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button type="submit" disabled={submitting}

@@ -49,6 +49,7 @@ const mockPrisma = {
   batch: {
     findUnique: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   },
   enrollment: {
     findUnique: jest.fn(),
@@ -143,6 +144,13 @@ describe('Enrollment Flow', () => {
       if (batchData) batchData = { ...batchData, ...data };
       return batchData;
     });
+    mockPrisma.batch.updateMany.mockImplementation(({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+      if (batchData && batchData.seatsFilled < batchData.capacity) {
+        batchData = { ...batchData, seatsFilled: batchData.seatsFilled + 1 };
+        return { count: 1 };
+      }
+      return { count: 0 };
+    });
     mockPrisma.payment.findFirst.mockImplementation(({ where }: { where: { gatewayOrderId?: string } }) => {
       if (paymentData && paymentData.gatewayOrderId === where.gatewayOrderId) return paymentData;
       return null;
@@ -203,7 +211,8 @@ describe('Enrollment Flow', () => {
 
     mockPrisma.payment.findFirst.mockImplementation(() => ({
       ...paymentData,
-      enrollment: { ...enrollmentData, batch: { id: 'batch-1', subject: { name: 'Mathematics' } }, student: { id: 'student-1', name: 'Alice', phone: '9876543210' } },
+      enrollment: { ...enrollmentData, batch: { id: 'batch-1', subject: { name: 'Mathematics' }, schedule: 'Mon-Fri 4PM' }, student: { id: 'student-1', name: 'Alice', phone: '9876543210', email: 'alice@test.com' } },
+      payer: { id: 'student-1', name: 'Alice', email: 'alice@test.com' },
     }));
 
     mockPrisma.$transaction.mockImplementation(async (cb: (tx: typeof mockPrisma) => Promise<void>) => {

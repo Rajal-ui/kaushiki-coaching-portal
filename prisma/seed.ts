@@ -66,13 +66,13 @@ async function main() {
   // ── PARENT-STUDENT LINKS ───────────────────────────────
   await prisma.parentStudentLink.upsert({
     where: { parentId_studentId: { parentId: parent1.id, studentId: student1.id } },
-    update: { status: 'APPROVED', approvedById: admin.id },
-    create: { parentId: parent1.id, studentId: student1.id, status: 'APPROVED', approvedById: admin.id },
+    update: { status: 'APPROVED', approvedById: admin.id, pinVerified: true },
+    create: { parentId: parent1.id, studentId: student1.id, status: 'APPROVED', approvedById: admin.id, pin: '000000', pinVerified: true },
   });
   await prisma.parentStudentLink.upsert({
     where: { parentId_studentId: { parentId: parent2.id, studentId: student2.id } },
-    update: { status: 'APPROVED', approvedById: admin.id },
-    create: { parentId: parent2.id, studentId: student2.id, status: 'APPROVED', approvedById: admin.id },
+    update: { status: 'APPROVED', approvedById: admin.id, pinVerified: true },
+    create: { parentId: parent2.id, studentId: student2.id, status: 'APPROVED', approvedById: admin.id, pin: '000000', pinVerified: true },
   });
 
   // ── TRACKS ─────────────────────────────────────────────

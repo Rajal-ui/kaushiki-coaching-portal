@@ -4,7 +4,7 @@ import { authenticateRequest, type AuthenticatedRequest, withRole } from '@/lib/
 import { createEnrollmentSchema, listEnrollmentsSchema } from '@/lib/validators/enrollments';
 import { createRazorpayOrder } from '@/lib/razorpay';
 
-export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest, { params }) => {
+export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest) => {
   const user = (req as AuthenticatedRequest).user!;
 
   let body: unknown;
@@ -30,10 +30,7 @@ export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest, { p
   try {
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
-      include: {
-        subject: { select: { name: true } },
-        faculty: { select: { name: true } },
-      },
+      select: { id: true, status: true, capacity: true, seatsFilled: true, subject: { select: { name: true } }, faculty: { select: { name: true } } },
     });
 
     if (!batch || batch.status !== 'ACTIVE') {
@@ -67,6 +64,15 @@ export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest, { p
     const razorpayOrder = await createRazorpayOrder(amount, receipt);
 
     const enrollment = await prisma.$transaction(async (tx) => {
+      const seatUpdate = await tx.batch.updateMany({
+        where: { id: batchId, seatsFilled: { lt: batch.capacity } },
+        data: { seatsFilled: { increment: 1 } },
+      });
+
+      if (seatUpdate.count === 0) {
+        throw new Error('BATCH_FULL');
+      }
+
       const enr = await tx.enrollment.create({
         data: {
           studentId: user.id,
@@ -113,6 +119,12 @@ export const POST = withRole(['STUDENT', 'PARENT'], async (req: NextRequest, { p
       amount,
     }, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === 'BATCH_FULL') {
+      return NextResponse.json(
+        { error: { code: 'BATCH_FULL', message: 'Batch reached full capacity during enrollment. Please try again.' } },
+        { status: 409 }
+      );
+    }
     console.error('[Create Enrollment] Error:', err);
     return NextResponse.json(
       { error: { code: 'ENROLLMENT_FAILED', message: 'Failed to create enrollment. Please try again.' } },

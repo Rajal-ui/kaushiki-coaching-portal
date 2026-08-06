@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { authenticateRequest, type AuthenticatedRequest } from '@/lib/auth/middleware';
-import { approveLinkSchema } from '@/lib/validators/links';
-import { createNotificationForLinkApproved } from '@/lib/notifications';
+import { verifyPinSchema } from '@/lib/validators/links';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateRequest(req as AuthenticatedRequest);
   if (auth instanceof NextResponse) return auth;
-  if (auth.user.role !== 'ADMIN') {
-    return NextResponse.json(
-      { error: { code: 'FORBIDDEN', message: 'Only admins can approve link requests' } },
-      { status: 403 }
-    );
-  }
 
   const { id } = await params;
 
@@ -26,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  const parsed = approveLinkSchema.safeParse(body);
+  const parsed = verifyPinSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: parsed.error.issues[0].message } },
@@ -34,7 +27,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  const { status } = parsed.data;
+  const { pin } = parsed.data;
 
   try {
     const link = await prisma.parentStudentLink.findUnique({ where: { id } });
@@ -45,6 +38,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       );
     }
 
+    if (auth.user.id !== link.studentId) {
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: 'Only the student can verify the PIN' } },
+        { status: 403 }
+      );
+    }
+
     if (link.status !== 'PENDING') {
       return NextResponse.json(
         { error: { code: 'ALREADY_PROCESSED', message: `Link already ${link.status.toLowerCase()}` } },
@@ -52,32 +52,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       );
     }
 
-    if (!link.pinVerified) {
+    if (link.pinVerified) {
       return NextResponse.json(
-        { error: { code: 'PIN_NOT_VERIFIED', message: 'Student must verify the PIN before the link can be approved' } },
+        { error: { code: 'ALREADY_VERIFIED', message: 'PIN has already been verified' } },
         { status: 400 }
       );
     }
 
-    const updated = await prisma.parentStudentLink.update({
+    if (link.pin !== pin) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_PIN', message: 'Invalid PIN provided' } },
+        { status: 400 }
+      );
+    }
+
+    await prisma.parentStudentLink.update({
       where: { id },
-      data: {
-        status,
-        approvedById: auth.user.id,
-      },
-      include: {
-        parent: { select: { id: true, name: true, phone: true } },
-        student: { select: { id: true, name: true, phone: true } },
-      },
+      data: { pinVerified: true },
     });
 
-    await createNotificationForLinkApproved(id, status);
-
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      message: 'PIN verified successfully. The link is now ready for admin approval.',
+    });
   } catch (err) {
-    console.error('[Approve Link] Error:', err);
+    console.error('[Verify PIN] Error:', err);
     return NextResponse.json(
-      { error: { code: 'INTERNAL_ERROR', message: 'Failed to process link request' } },
+      { error: { code: 'INTERNAL_ERROR', message: 'Failed to verify PIN' } },
       { status: 500 }
     );
   }

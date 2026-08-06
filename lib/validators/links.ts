@@ -7,3 +7,7 @@ export const createLinkSchema = z.object({
 export const approveLinkSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED']),
 });
+
+export const verifyPinSchema = z.object({
+  pin: z.string().length(6, 'PIN must be 6 digits'),
+});

@@ -144,6 +144,8 @@ model ParentStudentLink {
   parentId     String
   studentId    String
   status       LinkStatus @default(PENDING)
+  pin          String
+  pinVerified  Boolean    @default(false)
   approvedById String?
   createdAt    DateTime   @default(now())
 

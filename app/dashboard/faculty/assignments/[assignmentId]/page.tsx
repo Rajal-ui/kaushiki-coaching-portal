@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ChevronLeft, FileText, Calendar, Clock, User, BookOpen, AlertCircle, CheckCircle, Star, Send, Download } from 'lucide-react';
+import { Loader2, ChevronLeft, FileText, Calendar, Clock, User, BookOpen, AlertCircle, CheckCircle, Star, Send, Download, Eye, EyeOff, Image } from 'lucide-react';
 
 interface Submission {
   id: string;
@@ -38,6 +38,7 @@ export default function FacultyGradingPage({ params }: { params: Promise<{ assig
   const [grades, setGrades] = useState<Record<string, string>>({});
   const [feedbacks, setFeedbacks] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
 
   function fetchData() {
     if (!token) return;
@@ -141,13 +142,39 @@ export default function FacultyGradingPage({ params }: { params: Promise<{ assig
                 )}
 
                 {sub.fileUrls && sub.fileUrls.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {sub.fileUrls.map((f, i) => (
-                      <a key={i} href={f.url} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">
-                        <Download className="w-3.5 h-3.5" /> {f.name}
-                      </a>
-                    ))}
+                  <div className="mb-3 space-y-2">
+                    {sub.fileUrls.map((f, i) => {
+                      const key = `${sub.id}_${i}`;
+                      const expanded = expandedFiles[key];
+                      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(f.url);
+                      const isPdf = /\.pdf$/i.test(f.url);
+                      return (
+                        <div key={i}>
+                          <div className="flex items-center gap-2">
+                            <a href={f.url} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors">
+                              <Download className="w-3.5 h-3.5" /> {f.name}
+                            </a>
+                            {(isImage || isPdf) && (
+                              <button type="button" onClick={() => setExpandedFiles(prev => ({ ...prev, [key]: !prev[key] }))}
+                                className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors">
+                                {expanded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                {expanded ? 'Hide' : 'Preview'}
+                              </button>
+                            )}
+                          </div>
+                          {expanded && (
+                            <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                              {isImage ? (
+                                <img src={f.url} alt={f.name} className="max-h-96 object-contain mx-auto" />
+                              ) : isPdf ? (
+                                <iframe src={f.url} className="w-full h-96" title={f.name} />
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 

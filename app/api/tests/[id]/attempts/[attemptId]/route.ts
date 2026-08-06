@@ -64,8 +64,8 @@ export const PATCH = withRole('STUDENT', async (
   { params }: { params: Promise<Record<string, string>> }
 ): Promise<NextResponse> => {
   const user = (req as AuthenticatedRequest).user!;
-  
-  const { id: testId, attemptId } = await params;
+
+  const { id: testId, attemptId } = await params as { id: string; attemptId: string };
 
   let body: unknown;
   try {
@@ -123,6 +123,11 @@ export const PATCH = withRole('STUDENT', async (
     
     const isExpired = elapsedSeconds > limitSeconds + 10;
     const finalStatus = isExpired ? 'TIMEOUT' : 'COMPLETED';
+
+    // Reject manual submit after timer expired (auto-submit handles late submissions)
+    if (action === 'submit' && isExpired) {
+      return await forceSubmitAttempt(attemptId, test, user.id, limitSeconds);
+    }
 
     if (action === 'save_answers' && isExpired) {
       return await forceSubmitAttempt(attemptId, test, user.id, limitSeconds);
