@@ -77,8 +77,6 @@ type HandlerNoParams = (
   req: NextRequest,
 ) => Promise<Response> | Response;
 
-type ApiHandler = HandlerWithParams | HandlerNoParams;
-
 function authenticateAndAuthorize(
   req: NextRequest,
   allowedRoles: string[],
@@ -97,24 +95,22 @@ function authenticateAndAuthorize(
   });
 }
 
-export function withRole(roles: string | string[], handler: HandlerWithParams): HandlerWithParams;
-export function withRole(roles: string | string[], handler: HandlerNoParams): HandlerNoParams;
-export function withRole(roles: string | string[], handler: ApiHandler): ApiHandler {
+export function withRole<T extends HandlerWithParams>(roles: string | string[], handler: T): T {
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
 
   if (handler.length > 1) {
     const typedHandler = handler as HandlerWithParams;
-    return async (req: NextRequest, ctx: RouteParams): Promise<Response> => {
+    return (async (req: NextRequest, ctx: RouteParams): Promise<Response> => {
       const result = await authenticateAndAuthorize(req, allowedRoles);
       if (result instanceof NextResponse) return result;
       return typedHandler(req, ctx);
-    };
+    }) as unknown as T;
   }
 
-  const typedHandler = handler as HandlerNoParams;
-  return async (req: NextRequest): Promise<Response> => {
+  const typedHandler = handler as unknown as HandlerNoParams;
+  return (async (req: NextRequest): Promise<Response> => {
     const result = await authenticateAndAuthorize(req, allowedRoles);
     if (result instanceof NextResponse) return result;
     return typedHandler(req);
-  };
+  }) as unknown as T;
 }

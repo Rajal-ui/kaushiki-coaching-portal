@@ -4,6 +4,14 @@ import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { getSystemSettings, UpdateSettingsSchema, updateSystemSettings } from '@/lib/settings';
 import { isSecretSettingKey } from '@/lib/settings';
 
+/** Client address added by the hosting platform/proxy, normalized. */
+function getClientIp(req: AuthenticatedRequest): string | undefined {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (!forwarded) return undefined;
+  const first = forwarded.split(',')[0]?.trim();
+  return first || undefined;
+}
+
 export const GET = withRole('ADMIN', async () => {
   try {
     const data = await getSystemSettings();
@@ -48,7 +56,9 @@ export const PATCH = withRole('ADMIN', async (req) => {
     );
   }
 
-  const changedKeys = Object.keys(parsed.data).filter((key) => values[key]?.trim() !== '');
+  const changedKeys = Object.keys(parsed.data).filter(
+    (key) => values[key]?.trim() !== '' || !isSecretSettingKey(key)
+  );
 
   try {
     const data = await updateSystemSettings(parsed.data as Record<string, string>);
@@ -67,7 +77,7 @@ export const PATCH = withRole('ADMIN', async (req) => {
               secretsUpdated: changedKeys.filter((k) => isSecretSettingKey(k)),
               // Never log secret values.
             },
-            ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
+            ipAddress: getClientIp(req),
             userAgent: req.headers.get('user-agent') ?? undefined,
           },
         })

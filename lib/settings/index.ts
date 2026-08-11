@@ -53,7 +53,8 @@ function schemaForType(type: SystemSettingValue['type'], options?: string[]) {
         .string()
         .trim()
         .max(10)
-        .refine((v) => v === '' || !Number.isNaN(Number(v)), 'Must be a number');
+        .refine((v) => v === '' || /^\d+$/.test(v), 'Must be a number')
+        .refine((v) => v === '' || (Number(v) >= 1 && Number(v) <= 65535), 'Must be between 1 and 65535');
     case 'password':
       return z.string().max(1024, 'Value is too long');
     case 'textarea':
@@ -207,35 +208,47 @@ export async function updateSystemSettings(values: Record<string, string>): Prom
     throw err;
   }
 
-  for (const [key, rawValue] of entries) {
-    const def = getSettingDefinition(key)!;
-    const value = rawValue.trim();
+  const upserts: Array<{ storage: 'secret' | 'public'; key: string; row: RawSetting }> = [];
+  const deletes: Array<{ key: string }> = [];
 
-    if (def.storage === 'secret') {
-      if (value === '') continue; // keep existing secret
-      const encrypted = encryptSecret(value);
-      await prisma.systemConfig.upsert({
+  await prisma.$transaction(async (tx) => {
+    for (const [key, rawValue] of entries) {
+      const def = getSettingDefinition(key)!;
+      const value = rawValue.trim();
+
+      if (def.storage === 'secret') {
+        if (value === '') continue; // keep existing secret
+        const encrypted = encryptSecret(value);
+        await tx.systemConfig.upsert({
+          where: { key },
+          update: { value: encrypted },
+          create: { key, value: encrypted },
+        });
+        upserts.push({ storage: 'secret', key, row: { key, value: encrypted, updatedAt: new Date() } });
+        continue;
+      }
+
+      if (value === '') {
+        await tx.siteSetting.deleteMany({ where: { key } });
+        deletes.push({ key });
+        continue;
+      }
+
+      await tx.siteSetting.upsert({
         where: { key },
-        update: { value: encrypted },
-        create: { key, value: encrypted },
+        update: { value },
+        create: { key, value },
       });
-      secretRows.set(key, { key, value: encrypted, updatedAt: new Date() });
-      continue;
+      upserts.push({ storage: 'public', key, row: { key, value, updatedAt: new Date() } });
     }
+  });
 
-    if (value === '') {
-      await prisma.siteSetting.deleteMany({ where: { key } });
-      publicRows.delete(key);
-      continue;
-    }
-
-    await prisma.siteSetting.upsert({
-      where: { key },
-      update: { value },
-      create: { key, value },
-    });
-    publicRows.set(key, { key, value, updatedAt: new Date() });
+  // Apply the in-memory rows only after the transaction commits.
+  for (const { storage, key, row } of upserts) {
+    if (storage === 'secret') secretRows.set(key, row);
+    else publicRows.set(key, row);
   }
+  for (const { key } of deletes) publicRows.delete(key);
 
   return buildResponse(publicRows, secretRows);
 }

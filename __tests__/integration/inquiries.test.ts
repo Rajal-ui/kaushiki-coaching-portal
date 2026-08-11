@@ -1,6 +1,8 @@
 /**
  * @jest-environment node
  */
+import { NextRequest } from 'next/server';
+
 let mockAuthRole = 'ADMIN';
 jest.mock('@/lib/auth/middleware', () => {
   const { NextResponse } = require('next/server');
@@ -111,7 +113,7 @@ describe('Inquiry API', () => {
 
   it('rejects inquiry with honeypot field filled', async () => {
     const { POST } = await import('@/app/api/inquiries/route');
-    const req = new Request('http://localhost/api/inquiries', {
+    const req = new NextRequest('http://localhost/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Bot', phone: '9876543210', message: 'Spam', honeypot: 'filled' }),
@@ -134,7 +136,7 @@ describe('Inquiry API', () => {
 
     prisma.inquiry.create.mockResolvedValue({ id: '1', name: 'Test', phone: '9876543210', message: 'Hello' });
 
-    const req = new Request('http://localhost/api/inquiries', {
+    const req = new NextRequest('http://localhost/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Test', phone: '9876543210', message: 'Hello' }),
@@ -149,7 +151,7 @@ describe('Inquiry API', () => {
     const { POST } = await import('@/app/api/inquiries/route');
     prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
 
-    const req = new Request('http://localhost/api/inquiries', {
+    const req = new NextRequest('http://localhost/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
@@ -164,7 +166,7 @@ describe('Inquiry API', () => {
     const { POST } = await import('@/app/api/inquiries/route');
     prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
 
-    const req = new Request('http://localhost/api/inquiries', {
+    const req = new NextRequest('http://localhost/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
@@ -186,7 +188,7 @@ describe('Inquiry API', () => {
     const { POST } = await import('@/app/api/inquiries/route');
     prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', email: 'john@example.com', message: 'I want to enroll', status: 'NEW', assignee: null });
 
-    const req = new Request('http://localhost/api/inquiries', {
+    const req = new NextRequest('http://localhost/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'John', phone: '9876543210', email: 'john@example.com', message: 'I want to enroll' }),
@@ -208,7 +210,7 @@ describe('Inquiry API', () => {
     const { POST } = await import('@/app/api/inquiries/route');
     prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
 
-    const req = new Request('http://localhost/api/inquiries', {
+    const req = new NextRequest('http://localhost/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
@@ -228,7 +230,7 @@ describe('Inquiry API', () => {
     const { POST } = await import('@/app/api/inquiries/route');
     prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
 
-    const req = new Request('http://localhost/api/inquiries', {
+    const req = new NextRequest('http://localhost/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
@@ -246,7 +248,7 @@ describe('Inquiry API', () => {
     const { POST } = await import('@/app/api/inquiries/route');
     prisma.inquiry.create.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', message: 'I want to enroll', status: 'NEW', assignee: null });
 
-    const req = new Request('http://localhost/api/inquiries', {
+    const req = new NextRequest('http://localhost/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'John', phone: '9876543210', message: 'I want to enroll' }),
@@ -264,7 +266,7 @@ describe('Inquiry API', () => {
     prisma.inquiry.count.mockResolvedValue(1);
 
     const { GET } = await import('@/app/api/inquiries/route');
-    const req = new Request('http://localhost/api/inquiries?page=1&limit=20');
+    const req = new NextRequest('http://localhost/api/inquiries?page=1&limit=20');
     const res = await GET(req);
     const json = await res.json();
     expect(res.status).toBe(200);
@@ -277,7 +279,7 @@ describe('Inquiry API', () => {
     prisma.inquiry.update.mockResolvedValue({ id: 'inq-1', name: 'John', phone: '9876543210', status: 'CONTACTED', assignee: null });
 
     const { PATCH } = await import('@/app/api/inquiries/[id]/route');
-    const req = new Request('http://localhost/api/inquiries/inq-1', {
+    const req = new NextRequest('http://localhost/api/inquiries/inq-1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'CONTACTED' }),

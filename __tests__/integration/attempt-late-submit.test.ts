@@ -15,7 +15,7 @@ jest.mock('@/lib/validators/tests', () => ({
   attemptAnswerSchema: { safeParse: (body: any) => ({ success: true, data: body }) },
 }));
 
-const mockPrisma = {
+const mockPrisma: any = {
   test: { findUnique: jest.fn() },
   testAttempt: { findUnique: jest.fn(), update: jest.fn() },
   testAnswer: { findMany: jest.fn(), upsert: jest.fn(), create: jest.fn() },
@@ -128,3 +128,5 @@ describe('PATCH /api/tests/[id]/attempts/[attemptId] — late submission guard',
     expect(body.error.code).toBe('BAD_REQUEST');
   });
 });
+
+export {};

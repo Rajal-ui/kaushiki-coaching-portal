@@ -10,16 +10,18 @@ interface FieldInputProps {
   field: SystemSettingValue;
   value: string;
   onChange: (value: string) => void;
+  id?: string;
 }
 
 /** Renders the correct input control for a setting definition. */
-export function FieldInput({ field, value, onChange }: FieldInputProps) {
+export function FieldInput({ field, value, onChange, id }: FieldInputProps) {
   if (field.type === 'password') {
-    return <SecretInput field={field} value={value} onChange={onChange} />;
+    return <SecretInput field={field} value={value} onChange={onChange} id={id} />;
   }
   if (field.type === 'textarea') {
     return (
       <textarea
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
@@ -31,6 +33,7 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
   if (field.type === 'select') {
     return (
       <select
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="h-12 w-full rounded-md border-[1.5px] border-border bg-white px-3 py-2 text-base font-sans text-dark focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary/25"
@@ -46,6 +49,7 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
   }
   return (
     <Input
+      id={id}
       type={field.type === 'number' ? 'text' : field.type}
       inputMode={field.type === 'number' ? 'numeric' : undefined}
       value={value}
@@ -55,12 +59,13 @@ export function FieldInput({ field, value, onChange }: FieldInputProps) {
   );
 }
 
-function SecretInput({ field, value, onChange }: FieldInputProps) {
+function SecretInput({ field, value, onChange, id }: FieldInputProps) {
   const [revealed, setRevealed] = useState(false);
 
   return (
     <div className="relative">
       <Input
+        id={id}
         type={revealed ? 'text' : 'password'}
         autoComplete="new-password"
         value={value}
@@ -79,7 +84,6 @@ function SecretInput({ field, value, onChange }: FieldInputProps) {
         onClick={() => setRevealed((v) => !v)}
         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-dark transition-colors"
         aria-label={revealed ? 'Hide value' : 'Show value'}
-        tabIndex={-1}
       >
         {revealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>

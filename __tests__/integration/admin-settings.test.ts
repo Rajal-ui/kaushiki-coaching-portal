@@ -73,13 +73,17 @@ jest.mock('@/lib/db/prisma', () => {
     }),
   });
 
+  const siteSetting = makeModel(mockSiteStore);
+  const systemConfig = makeModel(mockConfigStore);
+
   return {
     prisma: {
-      siteSetting: makeModel(mockSiteStore),
-      systemConfig: makeModel(mockConfigStore),
+      siteSetting,
+      systemConfig,
       auditLog: {
         create: jest.fn(async ({ data }: any) => ({ id: 'log-1', ...data })),
       },
+      $transaction: jest.fn(async (fn: any) => fn({ siteSetting, systemConfig })),
     },
   };
 });
@@ -205,6 +209,13 @@ describe('Admin Settings API', () => {
       const res = await PATCH(mockRequest('PATCH', { values: { institution_website: '' } }));
       expect(res.status).toBe(200);
       expect(mockSiteStore.has('institution_website')).toBe(false);
+
+      const { prisma } = require('@/lib/db/prisma');
+      expect(prisma.auditLog.create).toHaveBeenCalled();
+      const call = prisma.auditLog.create.mock.calls[0][0];
+      expect(call.data.details.updatedKeys).toEqual(
+        expect.arrayContaining(['institution_website'])
+      );
     });
 
     it('rejects invalid values with a 400 and details', async () => {
@@ -231,6 +242,17 @@ describe('Admin Settings API', () => {
       expect(res.status).toBe(400);
     });
 
+    it('returns 400 when the request body is not valid JSON', async () => {
+      const req = mockRequest('PATCH', null);
+      req.json = async () => {
+        throw new SyntaxError('Unexpected token');
+      };
+      const res = await PATCH(req);
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe('INVALID_BODY');
+    });
+
     it('blocks non-admin roles', async () => {
       mockAuthRole = 'STUDENT';
       const res = await PATCH(mockRequest('PATCH', { values: { institution_name: 'x' } }));
@@ -255,3 +277,5 @@ describe('Admin Settings API', () => {
     });
   });
 });
+
+export {};

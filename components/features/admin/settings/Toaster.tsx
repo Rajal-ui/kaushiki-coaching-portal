@@ -19,10 +19,8 @@ interface ToasterProps {
 }
 
 export function Toaster({ toasts, onDismiss }: ToasterProps) {
-  if (toasts.length === 0) return null;
-
   return (
-    <div className="fixed top-20 right-4 z-50 flex flex-col gap-3 w-full max-w-sm" aria-live="polite">
+    <div className="pointer-events-none fixed top-20 right-4 z-50 flex flex-col gap-3 w-full max-w-sm">
       {toasts.map((toast) => (
         <ToastCard key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}
@@ -34,9 +32,10 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: str
   const isSuccess = toast.kind === 'success';
 
   useEffect(() => {
+    if (!isSuccess) return;
     const timer = setTimeout(() => onDismiss(toast.id), 5000);
     return () => clearTimeout(timer);
-  }, [toast.id, onDismiss]);
+  }, [isSuccess, toast.id, onDismiss]);
 
   return (
     <div

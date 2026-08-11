@@ -132,12 +132,24 @@ export function AdminSettingsForm() {
 
   async function saveSection(sectionId: SettingCategory) {
     if (!drafts || !isDirty(sectionId)) return;
+    const section = sections.find((s) => s.id === sectionId);
+    if (!section) return;
+    const changed: Record<string, string> = {};
+    for (const field of section.fields) {
+      const current = drafts[sectionId][field.key] ?? '';
+      if (field.isSecret) {
+        if (current !== '') changed[field.key] = current;
+      } else if (current !== field.value) {
+        changed[field.key] = current;
+      }
+    }
+    if (Object.keys(changed).length === 0) return;
     setSaving(sectionId);
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ values: drafts[sectionId] }),
+        body: JSON.stringify({ values: changed }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
@@ -172,11 +184,13 @@ export function AdminSettingsForm() {
       )}
 
       {!loading && sections.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6 border-b border-border pb-0">
+        <div role="tablist" aria-label="Settings sections" className="flex flex-wrap gap-2 mb-6 border-b border-border pb-0">
           {sections.map((section) => (
             <button
               key={section.id}
               type="button"
+              role="tab"
+              aria-selected={activeTab === section.id}
               onClick={() => setActiveTab(section.id)}
               className={cn(
                 'inline-flex items-center gap-2 rounded-t-lg px-4 py-3 text-sm font-medium transition-colors border-b-2',
@@ -188,7 +202,10 @@ export function AdminSettingsForm() {
               {SECTION_ICONS[section.id]}
               {section.title}
               {isDirty(section.id) && (
-                <span className="ml-1 h-2 w-2 rounded-full bg-warning" aria-label="Unsaved changes" />
+                <>
+                  <span className="ml-1 h-2 w-2 rounded-full bg-warning" aria-hidden="true" />
+                  <span className="sr-only">Unsaved changes</span>
+                </>
               )}
             </button>
           ))}
@@ -290,6 +307,7 @@ function SectionPanel({
               )}
             </div>
             <FieldInput
+              id={`setting-${field.key}`}
               field={field}
               value={draft[field.key] ?? ''}
               onChange={(value) => onFieldChange(field.key, value)}

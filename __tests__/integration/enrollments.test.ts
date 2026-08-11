@@ -1,6 +1,8 @@
 /**
  * @jest-environment node
  */
+import { NextRequest } from 'next/server';
+
 let mockAuthRole = 'STUDENT';
 let mockAuthId = 'student-1';
 jest.mock('@/lib/auth/middleware', () => {
@@ -116,7 +118,6 @@ describe('Enrollment Flow', () => {
     paymentData = null;
     enrollmentData = null;
     batchData = { id: 'batch-1', capacity: 15, seatsFilled: 10, status: 'ACTIVE', subjectId: 'subj-1', facultyId: 'fac-1' };
-    linkData = null;
 
     mockPrisma.batch.findUnique.mockImplementation(() => batchData);
     mockPrisma.enrollment.findUnique.mockImplementation((args: { where: { studentId_batchId?: { studentId: string; batchId: string }; id?: string } }) => {
@@ -175,7 +176,7 @@ describe('Enrollment Flow', () => {
 
   it('creates enrollment and returns razorpay order ID', async () => {
     const { POST } = await import('@/app/api/enrollments/route');
-    const req = new Request('http://localhost/api/enrollments', {
+    const req = new NextRequest('http://localhost/api/enrollments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ batchId: 'batch-1' }),
@@ -194,7 +195,7 @@ describe('Enrollment Flow', () => {
   it('rejects enrollment when batch is at full capacity', async () => {
     batchData = { id: 'batch-1', capacity: 15, seatsFilled: 15, status: 'ACTIVE', subjectId: 'subj-1', facultyId: 'fac-1' };
     const { POST } = await import('@/app/api/enrollments/route');
-    const req = new Request('http://localhost/api/enrollments', {
+    const req = new NextRequest('http://localhost/api/enrollments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ batchId: 'batch-1' }),
@@ -228,7 +229,7 @@ describe('Enrollment Flow', () => {
       },
     });
     const { POST } = await import('@/app/api/payments/webhook/route');
-    const req = new Request('http://localhost/api/payments/webhook', {
+    const req = new NextRequest('http://localhost/api/payments/webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-razorpay-signature': computeSignature(webhookBody) },
       body: webhookBody,
@@ -251,7 +252,7 @@ describe('Enrollment Flow', () => {
       },
     });
     const { POST } = await import('@/app/api/payments/webhook/route');
-    const req = new Request('http://localhost/api/payments/webhook', {
+    const req = new NextRequest('http://localhost/api/payments/webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-razorpay-signature': computeSignature(webhookBody) },
       body: webhookBody,
@@ -269,7 +270,7 @@ describe('Enrollment Flow', () => {
       event: 'payment.captured',
       payload: { payment: { entity: { id: 'evt_2', order_id: 'order_2', status: 'captured', amount: 500000 } } },
     });
-    const req = new Request('http://localhost/api/payments/webhook', {
+    const req = new NextRequest('http://localhost/api/payments/webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-razorpay-signature': 'invalid_signature' },
       body,
@@ -283,7 +284,7 @@ describe('Enrollment Flow', () => {
   it('returns student own enrollments via /me', async () => {
     enrollmentData = { id: 'enr-1', studentId: 'student-1', batchId: 'batch-1', status: 'ACTIVE' };
     const { GET } = await import('@/app/api/enrollments/me/route');
-    const req = new Request('http://localhost/api/enrollments/me');
+    const req = new NextRequest('http://localhost/api/enrollments/me');
     const res = await GET(req);
     const json = await res.json();
     expect(res.status).toBe(200);
