@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+export {};
 let mockAuthRole = 'ADMIN';
 let mockAuthId = 'admin-id';
 jest.mock('@/lib/auth/middleware', () => {
@@ -73,7 +74,7 @@ describe('Batch Admin CRUD', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subjectId: 'subj-1', facultyId: 'fac-1', capacity: 30, schedule: 'Mon/Wed 4-5 PM' }),
     });
-    const res = await POST(req);
+    const res = await POST(req as any, { params: Promise.resolve({}) } as any);
     const json = await res.json();
     expect(res.status).toBe(201);
     expect(json.id).toBe('batch-1');
@@ -87,7 +88,7 @@ describe('Batch Admin CRUD', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subjectId: 'subj-1', facultyId: 'fac-1', capacity: 30, schedule: 'Mon/Wed 4-5 PM' }),
     });
-    const res = await POST(req);
+    const res = await POST(req as any, { params: Promise.resolve({}) } as any);
     expect(res.status).toBe(403);
     const json = await res.json();
     expect(json.error.code).toBe('FORBIDDEN');
@@ -99,7 +100,7 @@ describe('Batch Admin CRUD', () => {
 
     const { GET } = await import('@/app/api/batches/route');
     const req = new Request('http://localhost/api/batches?page=1&limit=20');
-    const res = await GET(req);
+    const res = await GET(req as any, { params: Promise.resolve({}) } as any);
     const json = await res.json();
     expect(res.status).toBe(200);
     expect(json.data).toHaveLength(1);
@@ -116,7 +117,7 @@ describe('Batch Admin CRUD', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ capacity: 35 }),
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'batch-1' }) });
+    const res = await PATCH(req as any, { params: Promise.resolve({ id: 'batch-1' }) });
     const json = await res.json();
     expect(res.status).toBe(200);
     expect(json.capacity).toBe(35);
@@ -130,7 +131,7 @@ describe('Batch Admin CRUD', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ capacity: 35 }),
     });
-    const res = await PATCH(req, { params: Promise.resolve({ id: 'batch-1' }) });
+    const res = await PATCH(req as any, { params: Promise.resolve({ id: 'batch-1' }) });
     expect(res.status).toBe(403);
   });
 
@@ -144,7 +145,7 @@ describe('Batch Admin CRUD', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subjectId: 'subj-1', facultyId: 'student-1', capacity: 30, schedule: 'Mon/Wed 4-5 PM' }),
     });
-    const res = await POST(req);
+    const res = await POST(req as any, { params: Promise.resolve({}) } as any);
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.error.code).toBe('INVALID_FACULTY');
@@ -163,7 +164,7 @@ describe('Roster access control', () => {
 
     const { GET } = await import('@/app/api/batches/[id]/roster/route');
     const req = new Request('http://localhost/api/batches/batch-1/roster');
-    const res = await GET(req, { params: Promise.resolve({ id: 'batch-1' }) });
+    const res = await GET(req as any, { params: Promise.resolve({ id: 'batch-1' }) });
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.students).toHaveLength(2);
@@ -174,7 +175,7 @@ describe('Roster access control', () => {
 
     const { GET } = await import('@/app/api/batches/[id]/roster/route');
     const req = new Request('http://localhost/api/batches/batch-1/roster');
-    const res = await GET(req, { params: Promise.resolve({ id: 'batch-1' }) });
+    const res = await GET(req as any, { params: Promise.resolve({ id: 'batch-1' }) });
     expect(res.status).toBe(403);
   });
 });

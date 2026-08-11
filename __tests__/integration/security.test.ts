@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+export {};
 
 let mockAuthRole: string | null = 'STUDENT';
 let mockAuthId: string | null = 'student-1';
@@ -90,7 +91,7 @@ describe('Security & Authorization', () => {
     it('rejects unauthenticated requests with 401', async () => {
       mockAuthUnauthenticated = true;
       const { GET } = await import('@/app/api/enrollments/me/route');
-      const res = await GET(mockRequest('GET'));
+      const res = await (GET as any)(mockRequest('GET'));
       expect(res.status).toBe(401);
     });
   });
@@ -99,7 +100,7 @@ describe('Security & Authorization', () => {
     it('rejects non-faculty access to faculty-only endpoints', async () => {
       mockAuthRole = 'STUDENT';
       const { GET } = await import('@/app/api/batches/my/route');
-      const res = await GET(mockRequest('GET'));
+      const res = await (GET as any)(mockRequest('GET'));
       expect(res.status).toBe(403);
     });
 
@@ -107,7 +108,7 @@ describe('Security & Authorization', () => {
       mockAuthRole = 'STUDENT';
       const { POST } = await import('@/app/api/batches/route');
       const req = mockRequest('POST', { subjectId: 'subj-1', facultyId: 'fac-1', capacity: 10, schedule: 'MWF 10AM' });
-      const res = await POST(req);
+      const res = await (POST as any)(req);
       expect(res.status).toBe(403);
     });
   });
@@ -128,7 +129,7 @@ describe('Security & Authorization', () => {
     it('rejects webhook with invalid HMAC signature', async () => {
       const { POST } = await import('@/app/api/payments/webhook/route');
       const req = mockRequest('POST', { event: 'payment.captured' }, { 'x-razorpay-signature': 'invalid_sig' });
-      const res = await POST(req);
+      const res = await (POST as any)(req);
       expect(res.status).toBe(400);
     });
   });
