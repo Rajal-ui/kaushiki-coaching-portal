@@ -2,6 +2,8 @@
  * @jest-environment node
  */
 
+export {};
+
 let mockAuthRole: string | null = 'STUDENT';
 let mockAuthId: string | null = 'student-1';
 let mockAuthUnauthenticated = false;
@@ -78,6 +80,10 @@ function mockRequest(method: string, body?: any, headers?: Record<string, string
   };
 }
 
+function mockContext(): { params: Promise<Record<string, string>> } {
+  return { params: Promise.resolve({}) };
+}
+
 describe('Security & Authorization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -99,7 +105,7 @@ describe('Security & Authorization', () => {
     it('rejects non-faculty access to faculty-only endpoints', async () => {
       mockAuthRole = 'STUDENT';
       const { GET } = await import('@/app/api/batches/my/route');
-      const res = await GET(mockRequest('GET'));
+      const res = await GET(mockRequest('GET'), mockContext());
       expect(res.status).toBe(403);
     });
 
@@ -107,7 +113,7 @@ describe('Security & Authorization', () => {
       mockAuthRole = 'STUDENT';
       const { POST } = await import('@/app/api/batches/route');
       const req = mockRequest('POST', { subjectId: 'subj-1', facultyId: 'fac-1', capacity: 10, schedule: 'MWF 10AM' });
-      const res = await POST(req);
+      const res = await POST(req, mockContext());
       expect(res.status).toBe(403);
     });
   });

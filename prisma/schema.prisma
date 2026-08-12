@@ -689,17 +689,21 @@ model AuditLog {
 
 model EmailLog {
   id               String      @id @default(cuid())
-  recipient        String
+  recipientEmail   String      @map("recipient")
   subject          String?
   template         String?
+  emailType        String?
   status           EmailStatus @default(PENDING)
   errorMessage     String?
+  payloadData      Json?
   providerResponse Json?
+  retryCount       Int         @default(0)
   sentAt           DateTime?
   createdAt        DateTime    @default(now())
 
-  @@index([recipient])
+  @@index([recipientEmail])
   @@index([status])
+  @@index([emailType])
   @@index([createdAt])
   @@map("email_logs")
 }

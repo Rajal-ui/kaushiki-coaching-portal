@@ -5,6 +5,7 @@ import { respondDoubtSchema } from '@/lib/validators/doubts';
 import { enqueueSms } from '@/lib/sms/queue';
 import { createNotificationForDoubtAnswered } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
+import { logEmailDispatch } from '@/lib/email/audit';
 import { doubtAnsweredStudentTemplate } from '@/lib/email/doubt-templates';
 
 export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
@@ -102,6 +103,22 @@ export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
         subject: `Your doubt in ${doubt.batch.subject.name} has been answered`,
         html: template.html,
         text: template.text,
+      }).then((result) => {
+        void logEmailDispatch({
+          recipientEmail: doubt.student.email!,
+          subject: `Your doubt in ${doubt.batch.subject.name} has been answered`,
+          emailType: 'DOUBT_RESPONSE',
+          template: 'doubt_answered',
+          status: result.success ? 'SENT' : 'FAILED',
+          errorMessage: result.error?.message,
+          payloadData: {
+            to: doubt.student.email!,
+            subject: `Your doubt in ${doubt.batch.subject.name} has been answered`,
+            html: template.html,
+            text: template.text,
+          },
+          providerResponse: result.data ?? null,
+        });
       }).catch(() => {});
     }
 

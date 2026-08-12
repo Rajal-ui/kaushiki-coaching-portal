@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "isolatedModules": false
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../__mocks__/**/*.ts"
+  ],
+  "exclude": []
+}
