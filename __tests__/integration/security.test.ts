@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+export {};
 
 export {};
 
@@ -96,7 +97,7 @@ describe('Security & Authorization', () => {
     it('rejects unauthenticated requests with 401', async () => {
       mockAuthUnauthenticated = true;
       const { GET } = await import('@/app/api/enrollments/me/route');
-      const res = await GET(mockRequest('GET'));
+      const res = await (GET as any)(mockRequest('GET'));
       expect(res.status).toBe(401);
     });
   });
@@ -134,7 +135,7 @@ describe('Security & Authorization', () => {
     it('rejects webhook with invalid HMAC signature', async () => {
       const { POST } = await import('@/app/api/payments/webhook/route');
       const req = mockRequest('POST', { event: 'payment.captured' }, { 'x-razorpay-signature': 'invalid_sig' });
-      const res = await POST(req);
+      const res = await (POST as any)(req);
       expect(res.status).toBe(400);
     });
   });
