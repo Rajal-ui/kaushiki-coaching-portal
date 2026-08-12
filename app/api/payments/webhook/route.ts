@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import { enqueueMockSms } from '@/lib/sms/mock';
 import { createNotificationForPayment } from '@/lib/notifications';
 import { sendEmailWithFallback, isEmailConfigured } from '@/lib/email';
+import { logEmailDispatch } from '@/lib/email/audit';
 import {
   paymentSuccessHtml,
   paymentSuccessText,
@@ -280,6 +281,29 @@ async function sendPaymentReceiptEmail(data: {
     ],
   });
 
+  await logEmailDispatch({
+    recipientEmail: data.recipientEmail,
+    subject: `Payment Receipt – ${receiptNumber} | Kaushiki Classes`,
+    emailType: 'PAYMENT_RECEIPT',
+    template: 'payment_receipt',
+    status: result.success ? 'SENT' : 'FAILED',
+    errorMessage: result.error?.message,
+    payloadData: {
+      to: data.recipientEmail,
+      subject: `Payment Receipt – ${receiptNumber} | Kaushiki Classes`,
+      html: paymentSuccessHtml(emailData),
+      text: paymentSuccessText(emailData),
+      attachments: [
+        {
+          filename: `Kaushiki-Receipt-${receiptNumber}.pdf`,
+          contentType: 'application/pdf',
+          content: pdfBuffer.toString('base64'),
+        },
+      ],
+    },
+    providerResponse: result.data ?? null,
+  });
+
   if (!result.success) {
     console.error('[Webhook] Payment receipt email failed:', result.error?.message);
   }
@@ -296,6 +320,22 @@ async function sendPaymentFailedEmail(data: {
     subject: `Payment Failed – Kaushiki Classes`,
     html: paymentFailedHtml(data),
     text: paymentFailedText(data),
+  });
+
+  await logEmailDispatch({
+    recipientEmail: data.recipientEmail,
+    subject: `Payment Failed – Kaushiki Classes`,
+    emailType: 'PAYMENT_FAILED',
+    template: 'payment_failed',
+    status: result.success ? 'SENT' : 'FAILED',
+    errorMessage: result.error?.message,
+    payloadData: {
+      to: data.recipientEmail,
+      subject: `Payment Failed – Kaushiki Classes`,
+      html: paymentFailedHtml(data),
+      text: paymentFailedText(data),
+    },
+    providerResponse: result.data ?? null,
   });
 
   if (!result.success) {

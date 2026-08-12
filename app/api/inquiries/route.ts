@@ -3,14 +3,16 @@ import { prisma } from '@/lib/db/prisma';
 import { withRole } from '@/lib/auth/middleware';
 import { createInquirySchema, inquiryQuerySchema } from '@/lib/validators/inquiries';
 import { getClientIp, checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
-import { sendEmailWithFallback, isEmailConfigured, type EmailResult } from '@/lib/email';
+import { sendEmailWithFallback, isEmailConfigured } from '@/lib/email';
 import {
   inquiryConfirmationHtml,
   inquiryConfirmationText,
   adminAlertHtml,
   adminAlertText,
 } from '@/lib/email/inquiry-templates';
+import { logEmailDispatch } from '@/lib/email/audit';
 import { createNotificationForInquiryReceived } from '@/lib/notifications';
+import type { EmailType } from '@/types/email-logs';
 
 const ADMIN_EMAIL = 'kaushikiclasses@klnbs.in';
 
@@ -122,6 +124,35 @@ export async function POST(req: NextRequest) {
   }
 }
 
+async function sendAndLogInquiryEmail(
+  recipientEmail: string,
+  subject: string,
+  emailType: EmailType,
+  template: string,
+  options: Parameters<typeof sendEmailWithFallback>[0]
+): Promise<void> {
+  const result = await sendEmailWithFallback(options);
+  await logEmailDispatch({
+    recipientEmail,
+    subject,
+    emailType,
+    template,
+    status: result.success ? 'SENT' : 'FAILED',
+    errorMessage: result.error?.message,
+    payloadData: {
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+      replyTo: options.replyTo,
+    },
+    providerResponse: result.data ?? null,
+  });
+  if (!result.success) {
+    console.error('[Inquiry] Email send error:', result.error?.message);
+  }
+}
+
 async function sendInquiryNotifications(
   inquiryId: string,
   data: { name: string; phone: string; email?: string; message: string; trackId?: string }
@@ -136,46 +167,51 @@ async function sendInquiryNotifications(
     ? (await prisma.track.findUnique({ where: { id: data.trackId }, select: { name: true } }))?.name
     : undefined;
 
-  const emailPromises: Promise<EmailResult>[] = [];
+  const emailTasks: Promise<void>[] = [];
 
   if (data.email) {
-    emailPromises.push(
-      sendEmailWithFallback({
-        to: data.email,
-        subject: `Thank you for your inquiry – Kaushiki Classes`,
-        html: inquiryConfirmationHtml(data.name),
-        text: inquiryConfirmationText(data.name),
-      })
+    emailTasks.push(
+      sendAndLogInquiryEmail(
+        data.email,
+        `Thank you for your inquiry – Kaushiki Classes`,
+        'INQUIRY_CONFIRMATION',
+        'inquiry_confirmation',
+        {
+          to: data.email,
+          subject: `Thank you for your inquiry – Kaushiki Classes`,
+          html: inquiryConfirmationHtml(data.name),
+          text: inquiryConfirmationText(data.name),
+        }
+      )
     );
   }
 
-  emailPromises.push(
-    sendEmailWithFallback({
-      to: ADMIN_EMAIL,
-      subject: `New Inquiry: ${data.name} – Kaushiki Classes`,
-      html: adminAlertHtml({
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        message: data.message,
-        trackName,
-      }),
-      text: adminAlertText({
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        message: data.message,
-        trackName,
-      }),
-    })
+  emailTasks.push(
+    sendAndLogInquiryEmail(
+      ADMIN_EMAIL,
+      `New Inquiry: ${data.name} – Kaushiki Classes`,
+      'ADMIN_ALERT',
+      'admin_alert',
+      {
+        to: ADMIN_EMAIL,
+        subject: `New Inquiry: ${data.name} – Kaushiki Classes`,
+        html: adminAlertHtml({
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          message: data.message,
+          trackName,
+        }),
+        text: adminAlertText({
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          message: data.message,
+          trackName,
+        }),
+      }
+    )
   );
 
-  const results = await Promise.allSettled(emailPromises);
-  for (const result of results) {
-    if (result.status === 'rejected') {
-      console.error('[Inquiry] Email send failed:', result.reason);
-    } else if (!result.value.success) {
-      console.error('[Inquiry] Email send error:', result.value.error?.message);
-    }
-  }
+  await Promise.allSettled(emailTasks);
 }
