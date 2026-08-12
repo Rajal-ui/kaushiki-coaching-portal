@@ -5,7 +5,12 @@
     "noEmit": true,
     "incremental": false,
     "types": ["jest", "@testing-library/jest-dom", "node"]
+    "isolatedModules": false
   },
-  "include": ["./**/*.ts", "./**/*.tsx"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../__mocks__/**/*.ts"
+  ],
   "exclude": []
 }

@@ -3,6 +3,7 @@
  */
 import { NextRequest } from 'next/server';
 
+export {};
 let mockAuthRole = 'FACULTY';
 let mockAuthId = 'fac-id';
 jest.mock('@/lib/auth/middleware', () => {
