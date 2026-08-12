@@ -1,6 +1,8 @@
 /**
  * @jest-environment node
  */
+import { NextRequest } from 'next/server';
+
 export {};
 let mockAuthRole = 'ADMIN';
 let mockAuthId = 'admin-id';
@@ -69,7 +71,7 @@ describe('Batch Admin CRUD', () => {
     });
 
     const { POST } = await import('@/app/api/batches/route');
-    const req = new Request('http://localhost/api/batches', {
+    const req = new NextRequest('http://localhost/api/batches', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subjectId: 'subj-1', facultyId: 'fac-1', capacity: 30, schedule: 'Mon/Wed 4-5 PM' }),
@@ -83,7 +85,7 @@ describe('Batch Admin CRUD', () => {
   it('rejects batch creation by non-admin', async () => {
     mockAuthRole = 'STUDENT';
     const { POST } = await import('@/app/api/batches/route');
-    const req = new Request('http://localhost/api/batches', {
+    const req = new NextRequest('http://localhost/api/batches', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subjectId: 'subj-1', facultyId: 'fac-1', capacity: 30, schedule: 'Mon/Wed 4-5 PM' }),
@@ -112,7 +114,7 @@ describe('Batch Admin CRUD', () => {
     prisma.batch.update.mockResolvedValue({ id: 'batch-1', subjectId: 'subj-1', facultyId: 'fac-1', capacity: 35, seatsFilled: 0, schedule: 'Mon/Wed 4-5 PM', status: 'ACTIVE' });
 
     const { PATCH } = await import('@/app/api/batches/[id]/route');
-    const req = new Request('http://localhost/api/batches/batch-1', {
+    const req = new NextRequest('http://localhost/api/batches/batch-1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ capacity: 35 }),
@@ -126,7 +128,7 @@ describe('Batch Admin CRUD', () => {
   it('rejects batch update by non-admin', async () => {
     mockAuthRole = 'FACULTY';
     const { PATCH } = await import('@/app/api/batches/[id]/route');
-    const req = new Request('http://localhost/api/batches/batch-1', {
+    const req = new NextRequest('http://localhost/api/batches/batch-1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ capacity: 35 }),
@@ -140,7 +142,7 @@ describe('Batch Admin CRUD', () => {
     prisma.user.findUnique.mockResolvedValue({ id: 'student-1', name: 'Alice', role: 'STUDENT' });
 
     const { POST } = await import('@/app/api/batches/route');
-    const req = new Request('http://localhost/api/batches', {
+    const req = new NextRequest('http://localhost/api/batches', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subjectId: 'subj-1', facultyId: 'student-1', capacity: 30, schedule: 'Mon/Wed 4-5 PM' }),

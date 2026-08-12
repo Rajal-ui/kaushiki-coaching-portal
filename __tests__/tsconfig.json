@@ -1,6 +1,10 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    "baseUrl": "..",
+    "noEmit": true,
+    "incremental": false,
+    "types": ["jest", "@testing-library/jest-dom", "node"]
     "isolatedModules": false
   },
   "include": [

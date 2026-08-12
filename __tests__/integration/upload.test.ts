@@ -37,7 +37,7 @@ describe('POST /api/uploads', () => {
       headers: { Authorization: 'Bearer fake-token' },
     });
 
-    const res = await POST(req as any, { params: Promise.resolve({}) });
+    const res = await POST(req as any);
     const body = await res.json();
 
     expect(res.status).toBe(201);
@@ -52,7 +52,7 @@ describe('POST /api/uploads', () => {
       body: formData,
     });
 
-    const res = await POST(req as any, { params: Promise.resolve({}) });
+    const res = await POST(req as any);
     const body = await res.json();
 
     expect(res.status).toBe(400);
@@ -72,7 +72,7 @@ describe('POST /api/uploads', () => {
       body: formData,
     });
 
-    const res = await POST(req as any, { params: Promise.resolve({}) });
+    const res = await POST(req as any);
     const body = await res.json();
 
     expect(res.status).toBe(400);
@@ -91,7 +91,7 @@ describe('POST /api/uploads', () => {
       body: formData,
     });
 
-    const res = await POST(req as any, { params: Promise.resolve({}) });
+    const res = await POST(req as any);
     const body = await res.json();
 
     expect(res.status).toBe(500);

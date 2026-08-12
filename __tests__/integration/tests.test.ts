@@ -1,6 +1,8 @@
 /**
  * @jest-environment node
  */
+import { NextRequest } from 'next/server';
+
 export {};
 let mockAuthRole = 'FACULTY';
 let mockAuthId = 'fac-id';
@@ -111,7 +113,7 @@ describe('Online Quiz API Routes', () => {
     });
 
     const { POST } = await import('@/app/api/tests/route');
-    const req = new Request('http://localhost/api/tests', {
+    const req = new NextRequest('http://localhost/api/tests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -153,7 +155,7 @@ describe('Online Quiz API Routes', () => {
     });
 
     const { POST: startPOST } = await import('@/app/api/tests/[id]/attempts/route');
-    const startReq = new Request('http://localhost/api/tests/test-1/attempts', { method: 'POST' });
+    const startReq = new NextRequest('http://localhost/api/tests/test-1/attempts', { method: 'POST' });
     const startRes = await startPOST(startReq, { params: Promise.resolve({ id: 'test-1' }) });
     const startJson = await startRes.json();
     expect(startRes.status).toBe(200);
@@ -170,7 +172,7 @@ describe('Online Quiz API Routes', () => {
     });
 
     const { GET: questionsGET } = await import('@/app/api/tests/[id]/questions/route');
-    const qReq = new Request('http://localhost/api/tests/test-1/questions');
+    const qReq = new NextRequest('http://localhost/api/tests/test-1/questions');
     const qRes = await questionsGET(qReq, { params: Promise.resolve({ id: 'test-1' }) });
     const qJson = await qRes.json();
     expect(qRes.status).toBe(200);
@@ -212,7 +214,7 @@ describe('Online Quiz API Routes', () => {
     });
 
     const { PATCH: attemptPATCH } = await import('@/app/api/tests/[id]/attempts/[attemptId]/route');
-    const req = new Request('http://localhost/api/tests/test-1/attempts/attempt-1', {
+    const req = new NextRequest('http://localhost/api/tests/test-1/attempts/attempt-1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
