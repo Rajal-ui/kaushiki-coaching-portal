@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { withRole, type AuthenticatedRequest } from '@/lib/auth/middleware';
 import { manualGradeSchema } from '@/lib/validators/tests';
+import { dispatchTestScorecard } from '@/lib/email/scorecard';
 
 export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
   const { user } = req as AuthenticatedRequest;
@@ -131,10 +132,33 @@ export const PATCH = withRole(['FACULTY', 'ADMIN'], async (req, { params }) => {
         }
       }
 
-      return updatedAttempt;
+      return { updatedAttempt, totalScore, allGraded };
     });
 
-    return NextResponse.json(result);
+    const { updatedAttempt, totalScore, allGraded } = result;
+
+    let scorecardDispatch = null;
+    if (allGraded) {
+      try {
+        scorecardDispatch = await dispatchTestScorecard({
+          studentId: attempt.studentId,
+          testTitle: test.title,
+          totalMarks: test.totalMarks,
+          score: totalScore,
+          remarks: updatedAttempt.feedback,
+          gradedAt: new Date(),
+        });
+      } catch (dispatchErr) {
+        console.error('[Manual Grade Attempt] Scorecard dispatch error:', dispatchErr);
+      }
+    }
+
+    return NextResponse.json({
+      ...updatedAttempt,
+      scorecard: allGraded
+        ? { dispatched: true, ...(scorecardDispatch ?? { success: false, total: 0, sent: 0, failed: 0, recipients: [], errors: ['Scorecard dispatch failed'] }) }
+        : { dispatched: false, reason: 'ATTEMPT_NOT_FULLY_GRADED' },
+    });
   } catch (err: any) {
     console.error('[Manual Grade Attempt] Error:', err);
     return NextResponse.json(
